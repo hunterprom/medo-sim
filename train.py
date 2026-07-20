@@ -29,7 +29,7 @@ def parse_args():
     p.add_argument("--num-envs", type=int, default=12)
     p.add_argument("--n-steps", type=int, default=256, help="rollout length per env")
     p.add_argument("--total-steps", type=int, default=30_000_000)
-    p.add_argument("--device", default="cpu", help="cpu or cuda")
+    p.add_argument("--device", default="auto", help="auto, cpu, or cuda")
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--resume", default=None, help="checkpoint to resume from")
     p.add_argument("--ckpt-every", type=int, default=100, help="iterations between checkpoints")
@@ -38,6 +38,8 @@ def parse_args():
 
 def main():
     args = parse_args()
+    if args.device == "auto":
+        args.device = "cuda" if torch.cuda.is_available() else "cpu"
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     # tiny MLPs: many torch threads just fight the env threads for cores
@@ -56,8 +58,9 @@ def main():
         start_step = extra.get("global_step", 0)
         print(f"resumed from {args.resume} at step {start_step}")
 
+    # rollout buffers live on CPU; update() ships the batch to the GPU in one go
     N, T = args.num_envs, args.n_steps
-    dev = agent.device
+    dev = torch.device("cpu")
     obs_buf = torch.zeros((T, N, venv.n_obs), device=dev)
     act_buf = torch.zeros((T, N, venv.n_act), device=dev)
     logp_buf = torch.zeros((T, N), device=dev)

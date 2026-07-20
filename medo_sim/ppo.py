@@ -92,31 +92,45 @@ class PPO:
         self.opt = torch.optim.Adam(self.net.parameters(), lr=self.cfg.lr)
         self.obs_rms = RunningMeanStd((n_obs,))
         self.lr = self.cfg.lr
+        # Rollouts query the policy hundreds of times with a batch of only
+        # num_envs observations; at that size host<->device transfer latency
+        # costs more than the GPU saves. So inference always runs on a CPU
+        # copy, synced from the update net once per iteration.
+        if self.device.type == "cpu":
+            self.act_net = self.net
+        else:
+            self.act_net = ActorCritic(n_obs, n_act, self.cfg)
+            self._sync_act_net()
+
+    def _sync_act_net(self):
+        if self.act_net is not self.net:
+            self.act_net.load_state_dict(self.net.state_dict())
 
     @torch.no_grad()
     def act(self, obs_raw: np.ndarray, update_rms: bool = True):
         """Sample actions. Returns (action, logprob, value, mu, sigma) tensors."""
         if update_rms:
             self.obs_rms.update(obs_raw)
-        obs = torch.from_numpy(self.obs_rms.normalize(obs_raw)).to(self.device)
-        dist = self.net.dist(obs)
+        obs = torch.from_numpy(self.obs_rms.normalize(obs_raw))
+        dist = self.act_net.dist(obs)
         action = dist.sample()
         logprob = dist.log_prob(action).sum(-1)
-        value = self.net.value(obs)
+        value = self.act_net.value(obs)
         return obs, action, logprob, value, dist.loc, dist.scale
 
     @torch.no_grad()
     def act_deterministic(self, obs_raw: np.ndarray) -> np.ndarray:
-        obs = torch.from_numpy(self.obs_rms.normalize(obs_raw[None])).to(self.device)
-        return self.net.actor(obs)[0].cpu().numpy()
+        obs = torch.from_numpy(self.obs_rms.normalize(obs_raw[None]))
+        return self.act_net.actor(obs)[0].numpy()
 
     @torch.no_grad()
     def value_of(self, obs_raw: np.ndarray) -> torch.Tensor:
-        obs = torch.from_numpy(self.obs_rms.normalize(obs_raw)).to(self.device)
-        return self.net.value(obs)
+        obs = torch.from_numpy(self.obs_rms.normalize(obs_raw))
+        return self.act_net.value(obs)
 
     def update(self, batch: dict) -> dict:
         c = self.cfg
+        batch = {k: v.to(self.device) for k, v in batch.items()}
         n = batch["obs"].shape[0]
         idx = torch.randperm(n, device=self.device)
         mb_size = n // c.num_minibatches
@@ -167,6 +181,7 @@ class PPO:
                 stats["kl"] += kl.item()
                 count += 1
 
+        self._sync_act_net()
         return {k: v / count for k, v in stats.items()} | {"lr": self.lr}
 
     # --------------------------------------------------------- persistence
@@ -188,4 +203,5 @@ class PPO:
         self.lr = ckpt.get("lr", self.cfg.lr)
         for g in self.opt.param_groups:
             g["lr"] = self.lr
+        self._sync_act_net()
         return ckpt

@@ -49,18 +49,19 @@ Follow `docs/EXPORT_GUIDE.md` (Fusion 360 -> ACDC4Robot -> URDF ->
 - `--num-envs`: default 12 (threads). More helps until the CPU saturates.
 - `PPOConfig` in `medo_sim/ppo.py`: network sizes, KL target, etc.
 
-## GPU training (optional)
+## GPU training
 
-Everything runs with `--device cuda` once a CUDA torch build is installed.
-It was skipped by default to save ~6 GB of disk:
+The venv has the CUDA build of torch; `train.py` picks the GPU automatically
+when one is visible (`--device cpu` forces CPU). Training is deliberately
+hybrid: rollout inference runs on a CPU copy of the policy (at batch-of-12
+the GPU transfer latency costs more than it saves), while PPO updates run on
+the GPU with the whole batch shipped over once per iteration. To reclaim
+~6 GB of disk, swap back to the CPU build:
 
 ```
-.venv\Scripts\python -m pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu126 --force-reinstall
-python train.py --device cuda ...
+.venv\Scripts\python -m pip uninstall -y torch
+.venv\Scripts\python -m pip install --no-cache-dir torch
 ```
-
-On this machine (RTX 3060) it roughly halves wall-clock training time — the
-simulator itself stays on CPU either way; the GPU accelerates the PPO update.
 
 ## Tests
 
