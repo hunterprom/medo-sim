@@ -56,7 +56,7 @@ class EnvConfig:
     # reward scales
     rew_track_lin: float = 1.0
     rew_track_ang: float = 0.5
-    tracking_sigma: float = 0.25
+    tracking_sigma: float = 0.15   # tight: standing must not keep half credit
     rew_lin_vel_z: float = -2.0
     rew_ang_vel_xy: float = -0.05
     rew_orientation: float = -1.0
@@ -64,6 +64,10 @@ class EnvConfig:
     rew_action_rate: float = -0.01
     rew_air_time: float = 0.5
     air_time_target_s: float = 0.3
+    # anti-statue: with a movement command active, every foot beyond two on
+    # the ground costs reward. air_time alone cannot break a standing policy
+    # because it only pays on touchdowns, which a statue never produces.
+    rew_feet_planted: float = -0.25
     # domain randomization
     randomize: bool = True
     friction_range: tuple = (0.5, 1.25)
@@ -316,10 +320,14 @@ class MedoEnv:
         # reward long swing phases: paid once per touchdown, only when moving
         contact = self.foot_contact
         touchdown = contact & ~self.prev_contact
-        if np.linalg.norm(self.command) > 0.1 and touchdown.any():
+        moving_cmd = np.linalg.norm(self.command) > 0.1
+        if moving_cmd and touchdown.any():
             comps["air_time"] = c.rew_air_time * float(
                 np.sum(self.air_time[touchdown] - c.air_time_target_s)
             )
+        if moving_cmd:
+            comps["feet_planted"] = c.rew_feet_planted * max(
+                0.0, float(contact.sum()) - 2.0)
         self.air_time += self.dt
         self.air_time[contact] = 0.0
         self.prev_contact = contact
