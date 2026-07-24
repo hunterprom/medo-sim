@@ -50,6 +50,9 @@ class EnvConfig:
     zero_cmd_prob: float = 0.1       # some episodes learn to stand still
     # action
     action_scale: float = 0.5
+    # observation layout: drop base linear velocity for policies meant to run
+    # on the real dog (an IMU gives gravity + ang vel, but not lin vel)
+    obs_lin_vel: bool = True
     # reward scales
     rew_track_lin: float = 1.0
     rew_track_ang: float = 0.5
@@ -100,7 +103,8 @@ class MedoEnv:
         self.push_interval_steps = max(1, int(self.cfg.push_interval_s / self.dt))
 
         self.nu = self.model.nu
-        self.n_obs = 3 + 3 + 3 + self.nu + self.nu + self.nu + 3
+        self.n_obs = (3 + 3 + (3 if self.cfg.obs_lin_vel else 0)
+                      + self.nu + self.nu + self.nu + 3)
 
         # default pose from the "home" keyframe (required)
         key_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_KEY, "home")
@@ -138,7 +142,7 @@ class MedoEnv:
         self.noise_vec = np.concatenate([
             np.full(3, c.noise_gravity),
             np.full(3, c.noise_ang_vel),
-            np.full(3, c.noise_lin_vel),
+            np.full(3, c.noise_lin_vel) if c.obs_lin_vel else np.zeros(0),
             np.full(self.nu, c.noise_joint_pos),
             np.full(self.nu, c.noise_joint_vel),
             np.zeros(self.nu),
@@ -280,12 +284,15 @@ class MedoEnv:
         return obs, reward, terminated, truncated, info
 
     def _observe(self) -> np.ndarray:
-        obs = np.concatenate([
-            self.gravity, self.ang_vel, self.lin_vel,
+        segs = [self.gravity, self.ang_vel]
+        if self.cfg.obs_lin_vel:
+            segs.append(self.lin_vel)
+        segs += [
             self.data.qpos[7:] - self.default_joint_pos,
             self.data.qvel[6:],
             self.prev_action, self.command,
-        ])
+        ]
+        obs = np.concatenate(segs)
         if self.cfg.obs_noise:
             obs += self.rng.uniform(-1.0, 1.0, self.n_obs) * self.noise_vec
         return obs.astype(np.float32)
