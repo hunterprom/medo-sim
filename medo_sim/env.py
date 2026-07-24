@@ -41,10 +41,11 @@ class EnvConfig:
     # timing
     decimation: int = 4              # sim steps per control step (200 Hz -> 50 Hz)
     episode_length_s: float = 20.0
-    # commands (body frame)
-    cmd_vx_range: tuple = (-0.6, 1.0)
-    cmd_vy_range: tuple = (-0.4, 0.4)
-    cmd_wz_range: tuple = (-1.0, 1.0)
+    # commands (body frame), sized for the ~1.5 kg MG996 dog: symmetric-ish
+    # coverage of forward/backward/strafe/turn at speeds it can actually hit
+    cmd_vx_range: tuple = (-0.5, 0.7)
+    cmd_vy_range: tuple = (-0.35, 0.35)
+    cmd_wz_range: tuple = (-0.9, 0.9)
     cmd_resample_s: float = 5.0
     zero_cmd_prob: float = 0.1       # some episodes learn to stand still
     # action

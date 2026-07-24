@@ -16,6 +16,7 @@ medo_sim/vec_env.py          N parallel envs on threads (MuJoCo releases the GIL
 medo_sim/ppo.py              PPO + adaptive KL lr + obs normalization
 train.py                     training loop -> runs/<name>/ckpt_*.pt + log.csv
 play.py                      drive a trained policy with the keyboard in the viewer
+eval.py                      pass/fail check: does it walk fwd/back/left/right?
 view.py                      inspect any model, no policy needed
 tools/build_medo_real.py     rebuilds medo_real.xml from the export
 tools/convert_model.py       generic Fusion 360 URDF -> MJCF converter
@@ -29,6 +30,7 @@ docs/EXPORT_GUIDE.md         how the Fusion 360 export was made
 python view.py                          # look at Medo
 python train.py --run-name first_walk   # train; Ctrl+C saves and exits
 python play.py runs\first_walk\ckpt_latest.pt   # drive it with arrow keys
+python eval.py runs\first_walk\ckpt_latest.pt   # measure fwd/back/left/right tracking
 ```
 
 Everything defaults to the real Medo (`assets/medo_real.xml`); pass
