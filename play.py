@@ -53,18 +53,20 @@ def main():
     reset_flag = [False]
 
     def on_key(keycode):
+        # caps match EnvConfig command ranges: beyond them the policy is
+        # being asked for speeds it never trained on
         if keycode == KEY_UP:
-            command[0] = min(command[0] + 0.1, 1.2)
+            command[0] = min(command[0] + 0.1, 0.7)
         elif keycode == KEY_DOWN:
-            command[0] = max(command[0] - 0.1, -0.8)
+            command[0] = max(command[0] - 0.1, -0.5)
         elif keycode == KEY_LEFT:
-            command[2] = min(command[2] + 0.1, 1.5)
+            command[2] = min(command[2] + 0.1, 0.9)
         elif keycode == KEY_RIGHT:
-            command[2] = max(command[2] - 0.1, -1.5)
+            command[2] = max(command[2] - 0.1, -0.9)
         elif keycode == KEY_A:
-            command[1] = min(command[1] + 0.1, 0.5)
+            command[1] = min(command[1] + 0.1, 0.35)
         elif keycode == KEY_D:
-            command[1] = max(command[1] - 0.1, -0.5)
+            command[1] = max(command[1] - 0.1, -0.35)
         elif keycode == KEY_SPACE:
             command[:] = 0.0
         elif keycode == KEY_BACKSPACE:
