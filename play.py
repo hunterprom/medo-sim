@@ -33,6 +33,9 @@ def main():
     p.add_argument("checkpoint")
     p.add_argument("--model", default=DEFAULT_MODEL)
     p.add_argument("--device", default="cpu")
+    p.add_argument("--cmd", nargs=3, type=float, default=None,
+                   metavar=("VX", "VY", "WZ"),
+                   help="start with this command active (keys still adjust)")
     args = p.parse_args()
 
     n_in = PPO.peek_n_obs(args.checkpoint)
@@ -49,7 +52,8 @@ def main():
     print(f"loaded {args.checkpoint} ({n_in} obs)")
     print(__doc__)
 
-    command = np.zeros(3)
+    command = (np.zeros(3) if args.cmd is None
+               else np.array(args.cmd, dtype=float))
     reset_flag = [False]
 
     def on_key(keycode):
