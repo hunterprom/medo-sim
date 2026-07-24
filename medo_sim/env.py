@@ -57,12 +57,18 @@ class EnvConfig:
     rew_track_lin: float = 1.0
     rew_track_ang: float = 0.5
     tracking_sigma: float = 0.15   # tight: standing must not keep half credit
+    # linear directional progress: pays from the first cm/s toward the
+    # command (capped at the command). The exp() tracking well is too flat
+    # far from target to out-bid fall risk with few exploration envs --
+    # observed: a marching-in-place equilibrium at zero velocity.
+    rew_progress: float = 0.7
+    rew_ang_progress: float = 0.35
     rew_lin_vel_z: float = -2.0
     rew_ang_vel_xy: float = -0.05
     rew_orientation: float = -1.0
     rew_torque: float = -2e-4
     rew_action_rate: float = -0.01
-    rew_air_time: float = 0.5
+    rew_air_time: float = 0.3   # kept modest: air time alone rewards marching
     air_time_target_s: float = 0.3
     # anti-statue: with a movement command active, every foot beyond two on
     # the ground costs reward. air_time alone cannot break a standing policy
@@ -328,6 +334,17 @@ class MedoEnv:
         if moving_cmd:
             comps["feet_planted"] = c.rew_feet_planted * max(
                 0.0, float(contact.sum()) - 2.0)
+        cmd_xy = self.command[:2]
+        n_xy = float(np.linalg.norm(cmd_xy))
+        if n_xy > 0.1:
+            proj = float(self.lin_vel[:2] @ cmd_xy) / n_xy
+            comps["progress"] = (c.rew_progress
+                                 * float(np.clip(proj, -n_xy, n_xy)) / n_xy)
+        n_wz = abs(self.command[2])
+        if n_wz > 0.1:
+            projw = float(self.ang_vel[2]) * np.sign(self.command[2])
+            comps["ang_progress"] = (c.rew_ang_progress
+                                     * float(np.clip(projw, -n_wz, n_wz)) / n_wz)
         self.air_time += self.dt
         self.air_time[contact] = 0.0
         self.prev_contact = contact
