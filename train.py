@@ -30,6 +30,9 @@ def parse_args():
     p.add_argument("--n-steps", type=int, default=256, help="rollout length per env")
     p.add_argument("--total-steps", type=int, default=30_000_000)
     p.add_argument("--device", default="auto", help="auto, cpu, or cuda")
+    p.add_argument("--deploy", action="store_true",
+                   help="deployable observations only: drop base lin vel "
+                        "(what the real dog's IMU cannot measure)")
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--resume", default=None, help="checkpoint to resume from")
     p.add_argument("--ckpt-every", type=int, default=100, help="iterations between checkpoints")
@@ -48,7 +51,7 @@ def main():
     run_dir = os.path.join("runs", args.run_name)
     os.makedirs(run_dir, exist_ok=True)
 
-    env_cfg = EnvConfig(model_path=args.model)
+    env_cfg = EnvConfig(model_path=args.model, obs_lin_vel=not args.deploy)
     venv = ThreadVecEnv(args.num_envs, env_cfg, seed=args.seed)
     agent = PPO(venv.n_obs, venv.n_act, PPOConfig(), device=args.device)
 

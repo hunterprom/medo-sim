@@ -186,6 +186,12 @@ class PPO:
 
     # --------------------------------------------------------- persistence
 
+    @staticmethod
+    def peek_n_obs(path: str) -> int:
+        """Observation size a checkpoint was trained with (reads the file)."""
+        ckpt = torch.load(path, map_location="cpu", weights_only=False)
+        return ckpt["net"]["actor.0.weight"].shape[1]
+
     def save(self, path: str, extra: dict | None = None):
         torch.save({
             "net": self.net.state_dict(),

@@ -35,11 +35,18 @@ def main():
     p.add_argument("--device", default="cpu")
     args = p.parse_args()
 
+    n_in = PPO.peek_n_obs(args.checkpoint)
     cfg = EnvConfig(model_path=args.model, randomize=False, obs_noise=False)
     env = MedoEnv(cfg, seed=0)
+    if n_in == env.n_obs - 3:  # checkpoint trained with --deploy (no lin vel)
+        cfg = EnvConfig(model_path=args.model, randomize=False,
+                        obs_noise=False, obs_lin_vel=False)
+        env = MedoEnv(cfg, seed=0)
+    if n_in != env.n_obs:
+        raise SystemExit(f"checkpoint expects {n_in} obs, model gives {env.n_obs}")
     agent = PPO(env.n_obs, env.nu, device=args.device)
     agent.load(args.checkpoint)
-    print(f"loaded {args.checkpoint}")
+    print(f"loaded {args.checkpoint} ({n_in} obs)")
     print(__doc__)
 
     command = np.zeros(3)

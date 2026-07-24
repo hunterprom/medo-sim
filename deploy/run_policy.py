@@ -55,10 +55,18 @@ def main():
     jnt_lo = model.jnt_range[1:, 0].copy()
     jnt_hi = model.jnt_range[1:, 1].copy()
 
-    n_obs = 3 + 3 + 3 + nu + nu + nu + 3
-    agent = PPO(n_obs, nu, PPOConfig(), device="cpu")
+    n_full = 3 + 3 + 3 + nu + nu + nu + 3
+    n_in = PPO.peek_n_obs(args.checkpoint)
+    if n_in == n_full:
+        use_lin_vel = True   # sim-only checkpoint; lin vel fed as zeros
+    elif n_in == n_full - 3:
+        use_lin_vel = False  # trained with --deploy: the right kind for hardware
+    else:
+        raise SystemExit(f"unexpected obs size {n_in} in checkpoint")
+    agent = PPO(n_in, nu, PPOConfig(), device="cpu")
     agent.load(args.checkpoint)
-    print(f"loaded {args.checkpoint}")
+    print(f"loaded {args.checkpoint} ({n_in} obs, "
+          f"{'sim layout' if use_lin_vel else 'deploy layout'})")
     print(__doc__)
 
     ser = None
@@ -112,8 +120,8 @@ def main():
                       f"wz {command[2]:+.1f}")
 
             joint_vel = (joint_pos - prev_joint) / dt
-            obs = np.concatenate([
-                gravity, zeros3, zeros3,
+            segs = [gravity, zeros3] + ([zeros3] if use_lin_vel else [])
+            obs = np.concatenate(segs + [
                 joint_pos - home, joint_vel, prev_action, command,
             ]).astype(np.float32)
 
