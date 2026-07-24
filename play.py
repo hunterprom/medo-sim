@@ -20,7 +20,7 @@ import mujoco
 import mujoco.viewer
 import numpy as np
 
-from medo_sim.env import DEFAULT_MODEL, EnvConfig, MedoEnv
+from medo_sim.env import DEFAULT_MODEL, EnvConfig, MedoEnv, layout_for_n_obs
 from medo_sim.ppo import PPO
 
 KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT = 265, 264, 263, 262
@@ -39,14 +39,9 @@ def main():
     args = p.parse_args()
 
     n_in = PPO.peek_n_obs(args.checkpoint)
-    cfg = EnvConfig(model_path=args.model, randomize=False, obs_noise=False)
+    cfg = EnvConfig(model_path=args.model, randomize=False, obs_noise=False,
+                    **layout_for_n_obs(n_in))
     env = MedoEnv(cfg, seed=0)
-    if n_in == env.n_obs - 3:  # checkpoint trained with --deploy (no lin vel)
-        cfg = EnvConfig(model_path=args.model, randomize=False,
-                        obs_noise=False, obs_lin_vel=False)
-        env = MedoEnv(cfg, seed=0)
-    if n_in != env.n_obs:
-        raise SystemExit(f"checkpoint expects {n_in} obs, model gives {env.n_obs}")
     agent = PPO(env.n_obs, env.nu, device=args.device)
     agent.load(args.checkpoint)
     print(f"loaded {args.checkpoint} ({n_in} obs)")

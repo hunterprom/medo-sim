@@ -53,6 +53,13 @@ class EnvConfig:
     # observation layout: drop base linear velocity for policies meant to run
     # on the real dog (an IMU gives gravity + ang vel, but not lin vel)
     obs_lin_vel: bool = True
+    # gait clock: append (sin, cos) of a free-running phase. Without it the
+    # policy has no time reference -- near the home pose identical
+    # observations demand different actions depending on gait phase, which
+    # defeats both imitation and deterministic gait startup. The real robot
+    # synthesizes the same clock from a timer.
+    obs_gait_clock: bool = False
+    gait_clock_hz: float = 1.0
     # reward scales
     rew_track_lin: float = 1.0
     rew_track_ang: float = 0.5
@@ -74,6 +81,10 @@ class EnvConfig:
     # the ground costs reward. air_time alone cannot break a standing policy
     # because it only pays on touchdowns, which a statue never produces.
     rew_feet_planted: float = -0.25
+    # lower-limb floor grazes are penalized, not terminal: a working trot on
+    # this 11 cm-leg dog brushes a thigh capsule ~1% of steps, and killing
+    # the episode for that teaches the policy that walking is lethal
+    rew_limb_contact: float = -0.15
     # domain randomization
     randomize: bool = True
     friction_range: tuple = (0.5, 1.25)
@@ -89,6 +100,20 @@ class EnvConfig:
     noise_joint_vel: float = 0.15
     # termination
     max_tilt_gz: float = -0.5        # terminate if projected gravity z > this (>60 deg tilt)
+
+
+def layout_for_n_obs(n_obs: int, nu: int = 12) -> dict:
+    """Map a checkpoint's obs size to EnvConfig layout flags."""
+    base = 3 + 3 + 3 * nu + 3
+    layouts = {
+        base + 3: dict(obs_lin_vel=True, obs_gait_clock=False),
+        base: dict(obs_lin_vel=False, obs_gait_clock=False),
+        base + 5: dict(obs_lin_vel=True, obs_gait_clock=True),
+        base + 2: dict(obs_lin_vel=False, obs_gait_clock=True),
+    }
+    if n_obs not in layouts:
+        raise ValueError(f"no known obs layout has size {n_obs} for {nu} joints")
+    return layouts[n_obs]
 
 
 def quat_rotate_inverse(q: np.ndarray, v: np.ndarray) -> np.ndarray:
@@ -114,7 +139,8 @@ class MedoEnv:
 
         self.nu = self.model.nu
         self.n_obs = (3 + 3 + (3 if self.cfg.obs_lin_vel else 0)
-                      + self.nu + self.nu + self.nu + 3)
+                      + self.nu + self.nu + self.nu + 3
+                      + (2 if self.cfg.obs_gait_clock else 0))
 
         # default pose from the "home" keyframe (required)
         key_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_KEY, "home")
@@ -125,18 +151,25 @@ class MedoEnv:
 
         self.torso_body = self._find_torso_body()
         self.floor_geom = self._find_floor_geom()
-        # feet = robot geoms whose name contains "foot"; everything else on the
-        # robot touching the floor terminates the episode
-        foot, illegal = [], []
+        # feet ("foot" in name) may touch the floor; thigh/shank contacts are
+        # penalized but survivable; anything else touching terminates
+        foot, limb, terminal = [], [], []
         for gid in range(self.model.ngeom):
             if self.model.geom_bodyid[gid] == 0:
                 continue  # world geom
-            name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_GEOM, gid) or ""
-            (foot if "foot" in name.lower() else illegal).append(gid)
+            name = (mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_GEOM, gid)
+                    or "").lower()
+            if "foot" in name:
+                foot.append(gid)
+            elif "thigh" in name or "shank" in name:
+                limb.append(gid)
+            else:
+                terminal.append(gid)
         if not foot:
             raise ValueError("no geoms with 'foot' in their name; rename foot geoms")
         self.foot_geoms = np.array(foot)
-        self.illegal_geoms = np.array(illegal)
+        self.limb_geoms = np.array(limb)
+        self.illegal_geoms = np.array(terminal)
 
         # joint ranges for clipping position targets
         self.jnt_lo = self.model.jnt_range[1:, 0].copy()
@@ -157,11 +190,13 @@ class MedoEnv:
             np.full(self.nu, c.noise_joint_vel),
             np.zeros(self.nu),
             np.zeros(3),
+            np.zeros(2 if c.obs_gait_clock else 0),
         ])
         self._gravity_world = np.array([0.0, 0.0, -1.0])
         self._vel6 = np.zeros(6)
 
         self.command = np.zeros(3)
+        self.gait_phase = 0.0
         self.prev_action = np.zeros(self.nu)
         self.air_time = np.zeros(len(self.foot_geoms))
         self.prev_contact = np.zeros(len(self.foot_geoms), dtype=bool)
@@ -193,17 +228,20 @@ class MedoEnv:
 
     def _refresh_state(self):
         """Compute the per-step quantities shared by reward/termination/obs."""
-        mujoco.mj_objectVelocity(
-            self.model, self.data, mujoco.mjtObj.mjOBJ_BODY, self.torso_body,
-            self._vel6, 1,
-        )
-        self.ang_vel = self._vel6[:3].copy()
-        self.lin_vel = self._vel6[3:].copy()
+        # Base velocities straight from the free joint: qvel[0:3] is the base
+        # linear velocity in WORLD coords, qvel[3:6] the angular velocity
+        # already in BODY coords. (mj_objectVelocity was measurably NOT
+        # returning body-frame base velocity here -- a walking robot read as
+        # standing still, which silently zeroed every velocity reward.)
+        self.lin_vel = quat_rotate_inverse(self.data.qpos[3:7],
+                                           self.data.qvel[0:3])
+        self.ang_vel = self.data.qvel[3:6].copy()
         self.gravity = quat_rotate_inverse(self.data.qpos[3:7], self._gravity_world)
         # contacts against the floor, vectorized over the contact buffer
         ncon = self.data.ncon
         self.foot_contact = np.zeros(len(self.foot_geoms), dtype=bool)
         self.illegal_contact = False
+        self.limb_contacts = 0
         if ncon:
             g1 = self.data.contact.geom1[:ncon]
             g2 = self.data.contact.geom2[:ncon]
@@ -212,6 +250,7 @@ class MedoEnv:
                 other = np.where(g1[on_floor] == self.floor_geom,
                                  g2[on_floor], g1[on_floor])
                 self.illegal_contact = bool(np.isin(other, self.illegal_geoms).any())
+                self.limb_contacts = int(np.isin(self.limb_geoms, other).sum())
                 self.foot_contact = np.isin(self.foot_geoms, other)
 
     def _sample_command(self) -> np.ndarray:
@@ -245,6 +284,7 @@ class MedoEnv:
         mujoco.mj_forward(self.model, self.data)
 
         self.command = self._sample_command()
+        self.gait_phase = float(self.rng.random())  # random phase: no fixed t=0
         self.prev_action[:] = 0.0
         self.air_time[:] = 0.0
         self.prev_contact[:] = False
@@ -265,6 +305,7 @@ class MedoEnv:
             mujoco.mj_step(self.model, self.data)
 
         self.step_count += 1
+        self.gait_phase = (self.gait_phase + self.dt * c.gait_clock_hz) % 1.0
 
         if c.randomize and self.step_count % self.push_interval_steps == 0:
             self.data.qvel[0:2] += self.rng.uniform(-c.push_vel, c.push_vel, size=2)
@@ -302,6 +343,9 @@ class MedoEnv:
             self.data.qvel[6:],
             self.prev_action, self.command,
         ]
+        if self.cfg.obs_gait_clock:
+            ph = 2.0 * np.pi * self.gait_phase
+            segs.append(np.array([np.sin(ph), np.cos(ph)]))
         obs = np.concatenate(segs)
         if self.cfg.obs_noise:
             obs += self.rng.uniform(-1.0, 1.0, self.n_obs) * self.noise_vec
@@ -334,6 +378,8 @@ class MedoEnv:
         if moving_cmd:
             comps["feet_planted"] = c.rew_feet_planted * max(
                 0.0, float(contact.sum()) - 2.0)
+        if self.limb_contacts:
+            comps["limb_contact"] = c.rew_limb_contact * self.limb_contacts
         cmd_xy = self.command[:2]
         n_xy = float(np.linalg.norm(cmd_xy))
         if n_xy > 0.1:

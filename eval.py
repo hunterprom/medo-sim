@@ -14,7 +14,7 @@ import argparse
 
 import numpy as np
 
-from medo_sim.env import DEFAULT_MODEL, EnvConfig, MedoEnv
+from medo_sim.env import DEFAULT_MODEL, EnvConfig, MedoEnv, layout_for_n_obs
 from medo_sim.ppo import PPO, PPOConfig
 
 PROBES = [
@@ -38,14 +38,9 @@ def main():
     args = p.parse_args()
 
     n_in = PPO.peek_n_obs(args.checkpoint)
-    cfg = EnvConfig(model_path=args.model, randomize=False, obs_noise=False)
+    cfg = EnvConfig(model_path=args.model, randomize=False, obs_noise=False,
+                    **layout_for_n_obs(n_in))
     env = MedoEnv(cfg, seed=args.seed)
-    if n_in == env.n_obs - 3:  # checkpoint trained with --deploy (no lin vel)
-        cfg = EnvConfig(model_path=args.model, randomize=False,
-                        obs_noise=False, obs_lin_vel=False)
-        env = MedoEnv(cfg, seed=args.seed)
-    if n_in != env.n_obs:
-        raise SystemExit(f"checkpoint expects {n_in} obs, model gives {env.n_obs}")
     agent = PPO(env.n_obs, env.nu, PPOConfig(), device="cpu")
     agent.load(args.checkpoint)
     steps = int(args.seconds / env.dt)

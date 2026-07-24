@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import mujoco  # noqa: E402
 
 from deploy import servo_map  # noqa: E402
-from medo_sim.env import DEFAULT_MODEL, EnvConfig  # noqa: E402
+from medo_sim.env import DEFAULT_MODEL, EnvConfig, layout_for_n_obs  # noqa: E402
 from medo_sim.ppo import PPO, PPOConfig  # noqa: E402
 
 
@@ -55,18 +55,14 @@ def main():
     jnt_lo = model.jnt_range[1:, 0].copy()
     jnt_hi = model.jnt_range[1:, 1].copy()
 
-    n_full = 3 + 3 + 3 + nu + nu + nu + 3
     n_in = PPO.peek_n_obs(args.checkpoint)
-    if n_in == n_full:
-        use_lin_vel = True   # sim-only checkpoint; lin vel fed as zeros
-    elif n_in == n_full - 3:
-        use_lin_vel = False  # trained with --deploy: the right kind for hardware
-    else:
-        raise SystemExit(f"unexpected obs size {n_in} in checkpoint")
+    layout = layout_for_n_obs(n_in, nu)
+    use_lin_vel = layout["obs_lin_vel"]     # sim-only ckpt: lin vel fed as zeros
+    use_clock = layout["obs_gait_clock"]    # synthesized here from wall time
     agent = PPO(n_in, nu, PPOConfig(), device="cpu")
     agent.load(args.checkpoint)
-    print(f"loaded {args.checkpoint} ({n_in} obs, "
-          f"{'sim layout' if use_lin_vel else 'deploy layout'})")
+    print(f"loaded {args.checkpoint} ({n_in} obs, lin_vel={use_lin_vel}, "
+          f"gait_clock={use_clock})")
     print(__doc__)
 
     ser = None
@@ -93,6 +89,7 @@ def main():
     prev_action = np.zeros(nu)
     gravity = np.array([0.0, 0.0, -1.0])   # no IMU: assume level
     zeros3 = np.zeros(3)
+    gait_phase = 0.0
 
     print("streaming at %.0f Hz; keys w/s a/d q/e space x" % args.hz)
     try:
@@ -121,9 +118,12 @@ def main():
 
             joint_vel = (joint_pos - prev_joint) / dt
             segs = [gravity, zeros3] + ([zeros3] if use_lin_vel else [])
-            obs = np.concatenate(segs + [
-                joint_pos - home, joint_vel, prev_action, command,
-            ]).astype(np.float32)
+            segs += [joint_pos - home, joint_vel, prev_action, command]
+            if use_clock:
+                ph = 2.0 * np.pi * gait_phase
+                segs.append(np.array([np.sin(ph), np.cos(ph)]))
+                gait_phase = (gait_phase + dt * 1.0) % 1.0
+            obs = np.concatenate(segs).astype(np.float32)
 
             action = agent.act_deterministic(obs)
             action = np.clip(action, -1.0, 1.0)
