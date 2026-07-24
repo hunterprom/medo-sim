@@ -1,5 +1,13 @@
 # Getting Medo out of Fusion 360 and into the sim
 
+> **Status: done (2026-07-24).** The export landed as
+> `assets/robot_dog_description` (URDF + STL meshes) and
+> `tools/build_medo_real.py` turned it into `assets/medo_real.xml`, which is
+> now the default model everywhere. This guide stays for the next re-export;
+> if the design changes in Fusion, re-export the package, replace
+> `assets/robot_dog_description`, and rerun the builder (it handles the
+> steel-placeholder masses and non-watertight meshes automatically).
+
 The pipeline is: **Fusion 360 -> URDF (via the free ACDC4Robot add-in) ->
 `tools/convert_model.py` -> training-ready MJCF**. The export itself is the
 only manual part; everything after is scripted.

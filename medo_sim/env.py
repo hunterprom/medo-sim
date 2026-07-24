@@ -25,9 +25,14 @@ import os
 import mujoco
 import numpy as np
 
-DEFAULT_MODEL = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "medo.xml"
+_ASSETS = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets"
 )
+# the real Medo (built from the Fusion 360 export) when present, else the
+# placeholder quadruped
+DEFAULT_MODEL = os.path.join(_ASSETS, "medo_real.xml")
+if not os.path.exists(DEFAULT_MODEL):
+    DEFAULT_MODEL = os.path.join(_ASSETS, "medo.xml")
 
 
 @dataclasses.dataclass

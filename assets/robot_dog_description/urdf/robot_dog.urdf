@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+<robot name="robot_dog">
+  <material name="grey"><color rgba="0.6 0.6 0.6 1"/></material>
+  <link name="base_link">
+    <inertial><origin xyz="-0.006468 0.117723 0.198887" rpy="0 0 0"/><mass value="4.701172"/><inertia ixx="2.958865e-02" iyy="5.675425e-03" izz="3.312093e-02" ixy="-7.124580e-03" iyz="2.194082e-01" ixz="-1.214509e-02"/></inertial>
+    <visual><origin xyz="0.000000 0.000000 0.000000" rpy="0.000000 -0.000000 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/base_link_1.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.000000 0.000000 0.000000" rpy="0.000000 -0.000000 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/base_link_1.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="0.005512 -0.010913 0.191602" rpy="-0.000000 0.000000 -0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Untitled_v9_1.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.005512 -0.010913 0.191602" rpy="-0.000000 0.000000 -0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Untitled_v9_1.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="-0.020535 0.266523 0.189827" rpy="-0.000000 -0.000000 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/Untitled_v9_2.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="-0.020535 0.266523 0.189827" rpy="-0.000000 -0.000000 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/Untitled_v9_2.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="0.006000 0.000000 0.190000" rpy="0.000000 -0.000000 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Robot_leg_f3d_v25_1.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.006000 0.000000 0.190000" rpy="0.000000 -0.000000 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Robot_leg_f3d_v25_1.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="0.051834 0.092251 0.207880" rpy="3.141593 1.570796 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_14.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.051834 0.092251 0.207880" rpy="3.141593 1.570796 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_14.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="0.053075 0.157896 0.203735" rpy="0.000000 -1.570796 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_16.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.053075 0.157896 0.203735" rpy="0.000000 -1.570796 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_16.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="-0.064807 0.092742 0.205422" rpy="-3.141593 -1.570796 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_13.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="-0.064807 0.092742 0.205422" rpy="-3.141593 -1.570796 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_13.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="-0.067080 0.157984 0.205646" rpy="-0.000000 1.570796 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_15.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="-0.067080 0.157984 0.205646" rpy="-0.000000 1.570796 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_15.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="shoulder_fr">
+    <inertial><origin xyz="0.001473 -0.030430 0.000631" rpy="0 0 0"/><mass value="0.404624"/><inertia ixx="1.211254e-04" iyy="8.279017e-05" izz="1.419973e-04" ixy="5.182907e-04" iyz="3.007070e-03" ixz="6.125178e-03"/></inertial>
+    <visual><origin xyz="-0.009100 0.002491 0.010260" rpy="-1.570796 1.562639 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/SHOULDER_v16_1.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="-0.009100 0.002491 0.010260" rpy="-1.570796 1.562639 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/SHOULDER_v16_1.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="-0.020338 -0.055285 0.000063" rpy="-1.570796 -1.562639 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_1.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="-0.020338 -0.055285 0.000063" rpy="-1.570796 -1.562639 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_1.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="thigh_fr">
+    <inertial><origin xyz="0.035659 0.045460 -0.024564" rpy="0 0 0"/><mass value="0.380952"/><inertia ixx="1.022584e-04" iyy="9.920771e-05" izz="1.286849e-04" ixy="3.983979e-03" iyz="7.705305e-03" ixz="1.312342e-02"/></inertial>
+    <visual><origin xyz="0.018820 -0.006072 0.002945" rpy="2.068915 -0.008157 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_leg1_v13_1.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.018820 -0.006072 0.002945" rpy="2.068915 -0.008157 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_leg1_v13_1.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="0.017958 0.067868 -0.035469" rpy="-0.017072 1.072616 -1.585794"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_3.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.017958 0.067868 -0.035469" rpy="-0.017072 1.072616 -1.585794"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_3.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="shank_fr">
+    <inertial><origin xyz="-0.005500 -0.014314 -0.016685" rpy="0 0 0"/><mass value="0.048283"/><inertia ixx="3.951293e-05" iyy="2.368807e-05" izz="1.821681e-05" ixy="6.003793e-04" iyz="7.851745e-04" ixz="2.002044e-03"/></inertial>
+    <visual><origin xyz="-0.011690 -0.036699 -0.069091" rpy="0.577185 -0.008157 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_knee_v11_2.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="-0.011690 -0.036699 -0.069091" rpy="0.577185 -0.008157 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_knee_v11_2.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="shoulder_br">
+    <inertial><origin xyz="0.003114 0.031460 0.000547" rpy="0 0 0"/><mass value="0.404624"/><inertia ixx="1.215453e-04" iyy="8.122545e-05" izz="1.409387e-04" ixy="7.229047e-03" iyz="3.895065e-02" ixz="6.271834e-03"/></inertial>
+    <visual><origin xyz="-0.008978 -0.001003 -0.009577" rpy="1.570796 -1.568239 -3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/SHOULDER_v16_2.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="-0.008978 -0.001003 -0.009577" rpy="1.570796 -1.568239 -3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/SHOULDER_v16_2.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="-0.017806 0.056039 0.001573" rpy="1.570796 1.568239 -0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_4.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="-0.017806 0.056039 0.001573" rpy="1.570796 1.568239 -0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_4.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="thigh_br">
+    <inertial><origin xyz="0.014265 0.037852 -0.030409" rpy="0 0 0"/><mass value="0.380952"/><inertia ixx="1.033823e-04" iyy="1.045625e-04" izz="1.170306e-04" ixy="2.008680e-02" iyz="3.778493e-02" ixz="1.239384e-02"/></inertial>
+    <visual><origin xyz="0.000038 -0.006883 0.005082" rpy="2.248288 0.002558 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_leg1_v13_2.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.000038 -0.006883 0.005082" rpy="2.248288 0.002558 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_leg1_v13_2.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="-0.004806 0.057373 -0.045021" rpy="0.004080 0.893300 -1.567617"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_6.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="-0.004806 0.057373 -0.045021" rpy="0.004080 0.893300 -1.567617"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_6.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="shank_br">
+    <inertial><origin xyz="-0.005331 -0.017093 -0.013884" rpy="0 0 0"/><mass value="0.048283"/><inertia ixx="3.945889e-05" iyy="1.689483e-05" izz="2.506409e-05" ixy="3.488463e-03" iyz="4.095756e-03" ixz="1.985439e-03"/></inertial>
+    <visual><origin xyz="-0.010971 -0.048570 -0.061455" rpy="0.758538 0.002558 -3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_knee_v11_3.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="-0.010971 -0.048570 -0.061455" rpy="0.758538 0.002558 -3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_knee_v11_3.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="shoulder_fl">
+    <inertial><origin xyz="-0.001229 -0.031711 0.001134" rpy="0 0 0"/><mass value="0.404624"/><inertia ixx="1.214747e-04" iyy="8.357299e-05" izz="1.428389e-04" ixy="-6.919526e-04" iyz="2.808342e-03" ixz="-8.678040e-03"/></inertial>
+    <visual><origin xyz="0.009254 0.000995 -0.009307" rpy="-1.570796 -1.543982 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/SHOULDER_v16_3.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.009254 0.000995 -0.009307" rpy="-1.570796 -1.543982 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/SHOULDER_v16_3.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="0.020803 -0.056437 0.003184" rpy="-1.570796 1.543982 -0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_8.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.020803 -0.056437 0.003184" rpy="-1.570796 1.543982 -0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_8.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="thigh_fl">
+    <inertial><origin xyz="-0.041556 0.040466 -0.033728" rpy="0 0 0"/><mass value="0.380952"/><inertia ixx="1.024216e-04" iyy="1.105722e-04" izz="1.217517e-04" ixy="-4.343820e-03" iyz="6.561842e-03" ixz="-1.533654e-02"/></inertial>
+    <visual><origin xyz="-0.024342 -0.005717 0.002852" rpy="-2.238791 -0.026814 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_leg1_v13_3.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="-0.024342 -0.005717 0.002852" rpy="-2.238791 -0.026814 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_leg1_v13_3.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="-0.024097 0.059821 -0.049264" rpy="-0.043272 -0.902346 1.604764"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_9.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="-0.024097 0.059821 -0.049264" rpy="-0.043272 -0.902346 1.604764"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_9.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="shank_fl">
+    <inertial><origin xyz="0.010009 -0.016932 -0.013806" rpy="0 0 0"/><mass value="0.048283"/><inertia ixx="3.933833e-05" iyy="1.732181e-05" izz="2.475767e-05" ixy="-6.184972e-04" iyz="6.177670e-04" ixz="-2.339128e-03"/></inertial>
+    <visual><origin xyz="0.005534 -0.047857 -0.061862" rpy="0.746963 0.026814 -3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_knee_v11_4.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.005534 -0.047857 -0.061862" rpy="0.746963 0.026814 -3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_knee_v11_4.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="shoulder_bl">
+    <inertial><origin xyz="-0.002478 0.032232 -0.000552" rpy="0 0 0"/><mass value="0.404624"/><inertia ixx="1.208252e-04" iyy="8.176368e-05" izz="1.407506e-04" ixy="-1.006205e-02" iyz="3.904430e-02" ixz="-8.711646e-03"/></inertial>
+    <visual><origin xyz="0.009047 -0.001004 0.009506" rpy="1.570796 1.566053 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/SHOULDER_v16_4.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.009047 -0.001004 0.009506" rpy="1.570796 1.566053 3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/SHOULDER_v16_4.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="0.018821 0.057278 -0.001745" rpy="1.570796 -1.566053 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_11.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.018821 0.057278 -0.001745" rpy="1.570796 -1.566053 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_11.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="thigh_bl">
+    <inertial><origin xyz="-0.015202 0.042195 -0.023699" rpy="0 0 0"/><mass value="0.380952"/><inertia ixx="1.035757e-04" iyy="9.685622e-05" izz="1.265961e-04" ixy="-2.381492e-02" iyz="3.971028e-02" ixz="-1.493557e-02"/></inertial>
+    <visual><origin xyz="-0.000033 -0.007325 0.004421" rpy="-2.072134 0.004743 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_leg1_v13_4.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="-0.000033 -0.007325 0.004421" rpy="-2.072134 0.004743 0.000000"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_leg1_v13_4.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+    <visual><origin xyz="0.003386 0.062906 -0.036480" rpy="0.009869 -1.069438 1.562142"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_12.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.003386 0.062906 -0.036480" rpy="0.009869 -1.069438 1.562142"/><geometry><mesh filename="package://robot_dog_description/meshes/Tower_Pro_MG996_v5_12.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="shank_bl">
+    <inertial><origin xyz="0.009560 -0.014329 -0.016763" rpy="0 0 0"/><mass value="0.048283"/><inertia ixx="3.949546e-05" iyy="2.365939e-05" izz="1.826295e-05" ixy="-4.240463e-03" iyz="4.328514e-03" ixz="-2.430179e-03"/></inertial>
+    <visual><origin xyz="0.003549 -0.036753 -0.069173" rpy="0.577954 -0.004743 -3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_knee_v11_5.stl" scale="0.0010 0.001 0.001"/></geometry><material name="grey"/></visual>
+    <collision><origin xyz="0.003549 -0.036753 -0.069173" rpy="0.577954 -0.004743 -3.141593"/><geometry><mesh filename="package://robot_dog_description/meshes/robot_knee_v11_5.stl" scale="0.0010 0.001 0.001"/></geometry></collision>
+  </link>
+  <joint name="fr_hip" type="revolute"><parent link="base_link"/><child link="shoulder_fr"/><origin xyz="0.034830 0.048250 0.207880" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="-1.5708" upper="1.5708" effort="10" velocity="10"/></joint>
+  <joint name="fr_thigh" type="revolute"><parent link="shoulder_fr"/><child link="thigh_fr"/><origin xyz="0.023660 -0.038290 -0.000300" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="-1.5708" upper="1.5708" effort="10" velocity="10"/></joint>
+  <joint name="fr_knee" type="revolute"><parent link="thigh_fr"/><child link="shank_fr"/><origin xyz="0.074750 0.053200 -0.028390" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="-1.5708" upper="1.5708" effort="10" velocity="10"/></joint>
+  <joint name="br_hip" type="revolute"><parent link="base_link"/><child link="shoulder_br"/><origin xyz="0.034800 0.204000 0.203870" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="-1.5708" upper="1.5708" effort="10" velocity="10"/></joint>
+  <joint name="br_thigh" type="revolute"><parent link="shoulder_br"/><child link="thigh_br"/><origin xyz="0.043900 0.041620 0.001610" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="-1.5708" upper="1.5708" effort="10" velocity="10"/></joint>
+  <joint name="br_knee" type="revolute"><parent link="thigh_br"/><child link="shank_br"/><origin xyz="0.059390 0.043800 -0.036550" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="-1.5708" upper="1.5708" effort="10" velocity="10"/></joint>
+  <joint name="fl_hip" type="revolute"><parent link="base_link"/><child link="shoulder_fl"/><origin xyz="-0.050390 0.048410 0.206640" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="-1.5708" upper="1.5708" effort="10" velocity="10"/></joint>
+  <joint name="fl_thigh" type="revolute"><parent link="shoulder_fl"/><child link="thigh_fl"/><origin xyz="-0.023180 -0.039440 0.002000" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="-1.5708" upper="1.5708" effort="10" velocity="10"/></joint>
+  <joint name="fl_knee" type="revolute"><parent link="thigh_fl"/><child link="shank_fl"/><origin xyz="-0.094040 0.048390 -0.041310" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="-1.5708" upper="1.5708" effort="10" velocity="10"/></joint>
+  <joint name="bl_hip" type="revolute"><parent link="base_link"/><child link="shoulder_bl"/><origin xyz="-0.050180 0.203780 0.204980" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="-1.5708" upper="1.5708" effort="10" velocity="10"/></joint>
+  <joint name="bl_thigh" type="revolute"><parent link="shoulder_bl"/><child link="thigh_bl"/><origin xyz="-0.043010 0.042290 -0.000370" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="-1.5708" upper="1.5708" effort="10" velocity="10"/></joint>
+  <joint name="bl_knee" type="revolute"><parent link="thigh_bl"/><child link="shank_bl"/><origin xyz="-0.073600 0.047400 -0.027960" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="-1.5708" upper="1.5708" effort="10" velocity="10"/></joint>
+</robot>

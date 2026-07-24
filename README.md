@@ -8,25 +8,31 @@ policy on a Ryzen 5600 in hours, not days.
 ## Layout
 
 ```
-assets/medo.xml         placeholder quadruped (~2.8 kg hobby dog) - swap for real Medo
-medo_sim/env.py         locomotion task: velocity commands, rewards, domain rand
-medo_sim/vec_env.py     N parallel envs on threads (MuJoCo releases the GIL)
-medo_sim/ppo.py         PPO + adaptive KL lr + obs normalization
-train.py                training loop -> runs/<name>/ckpt_*.pt + log.csv
-play.py                 drive a trained policy with the keyboard in the viewer
-view.py                 inspect any model, no policy needed
-tools/convert_model.py  Fusion 360 URDF -> training-ready MJCF
-docs/EXPORT_GUIDE.md    how to get Medo out of Fusion 360
+assets/medo_real.xml         the real Medo (from the Fusion 360 export) - the default
+assets/robot_dog_description Fusion 360 export: URDF + STL meshes
+assets/medo.xml              placeholder quadruped kept for comparison
+medo_sim/env.py              locomotion task: velocity commands, rewards, domain rand
+medo_sim/vec_env.py          N parallel envs on threads (MuJoCo releases the GIL)
+medo_sim/ppo.py              PPO + adaptive KL lr + obs normalization
+train.py                     training loop -> runs/<name>/ckpt_*.pt + log.csv
+play.py                      drive a trained policy with the keyboard in the viewer
+view.py                      inspect any model, no policy needed
+tools/build_medo_real.py     rebuilds medo_real.xml from the export
+tools/convert_model.py       generic Fusion 360 URDF -> MJCF converter
+docs/EXPORT_GUIDE.md         how the Fusion 360 export was made
 ```
 
 ## Quickstart
 
 ```
 .venv\Scripts\activate
-python view.py                          # look at the (placeholder) dog
+python view.py                          # look at Medo
 python train.py --run-name first_walk   # train; Ctrl+C saves and exits
 python play.py runs\first_walk\ckpt_latest.pt   # drive it with arrow keys
 ```
+
+Everything defaults to the real Medo (`assets/medo_real.xml`); pass
+`--model assets/medo.xml` for the old placeholder.
 
 Training prints one line per iteration; `ret` (mean episode return) and `len`
 (mean episode length, max 1000) are the health signals. Expect `len` to climb
@@ -34,11 +40,26 @@ first, then `ret`. A decent flat-ground gait typically appears somewhere in
 the 10–30 M step range (a few hours on the 5600; throughput rises as the
 policy stops falling, since resets get rarer).
 
-## Getting the real Medo in
+## The real Medo model
 
-Follow `docs/EXPORT_GUIDE.md` (Fusion 360 -> ACDC4Robot -> URDF ->
-`tools/convert_model.py`). Then pass `--model assets/medo_real.xml` to
-`train.py` / `play.py` / `view.py`.
+`assets/medo_real.xml` is built from the Fusion 360 export in
+`assets/robot_dog_description` by `tools/build_medo_real.py`. The export's
+joint axes sit on the real MG996 servo shafts (verified against the meshes
+to ~1 mm), but its masses were Fusion "Steel" placeholders (8 kg!), so the
+builder recomputes inertia from the meshes: printed parts at an effective
+PLA density, 55 g per servo, plus a 220 g battery/electronics block --
+1.55 kg total. Servos are modeled honestly (1.3 Nm cap, MG996-like speed
+limit). Collision uses hidden primitives; only the orange toe spheres touch
+the ground. Numbers worth verifying against the physical dog (then edit the
+constants at the top of the builder and rerun it):
+
+- total mass: weigh the dog; tweak `PLA_EFF` / `BATTERY_MASS`
+- servo torque: `SERVO_TORQUE` (MG996R at 5-6 V is roughly 1.0-1.3 Nm)
+- which end is the head: the builder trusts the export's fr/br labels;
+  if forward comes out mirrored, it is a sign flip, not a retrain
+
+If you re-export from Fusion, drop the new package into
+`assets/robot_dog_description` and rerun the builder.
 
 ## Knobs that matter
 
