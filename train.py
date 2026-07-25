@@ -35,6 +35,8 @@ def parse_args():
                         "(what the real dog's IMU cannot measure)")
     p.add_argument("--gait-clock", action="store_true",
                    help="append a 1 Hz gait clock (sin, cos) to observations")
+    p.add_argument("--push-vel", type=float, default=None,
+                   help="override domain-randomization push velocity (m/s)")
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--resume", default=None, help="checkpoint to resume from")
     p.add_argument("--ckpt-every", type=int, default=100, help="iterations between checkpoints")
@@ -55,6 +57,8 @@ def main():
 
     env_cfg = EnvConfig(model_path=args.model, obs_lin_vel=not args.deploy,
                         obs_gait_clock=args.gait_clock)
+    if args.push_vel is not None:
+        env_cfg.push_vel = args.push_vel
     venv = ThreadVecEnv(args.num_envs, env_cfg, seed=args.seed)
     agent = PPO(venv.n_obs, venv.n_act, PPOConfig(), device=args.device)
 
