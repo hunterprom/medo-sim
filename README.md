@@ -28,10 +28,15 @@ docs/EXPORT_GUIDE.md         how the Fusion 360 export was made
 ```
 .venv\Scripts\activate
 python view.py                          # look at Medo
-python train.py --run-name first_walk   # train; Ctrl+C saves and exits
-python play.py runs\first_walk\ckpt_latest.pt   # drive it with arrow keys
-python eval.py runs\first_walk\ckpt_latest.pt   # measure fwd/back/left/right tracking
+python play.py policies\medo_walk_v1.pt --cmd 0.4 0 0   # watch the trained walk
+python eval.py policies\medo_walk_v1.pt                 # measure its tracking
+python train.py --run-name my_run --deploy --gait-clock # train further
 ```
+
+`policies\medo_walk_v1.pt` is the trained omnidirectional walking policy
+(2026-07-25): deploy-layout observations (IMU + gait clock, no lin vel),
+walks/strafes/turns with zero falls in eval, trained against 0.75 m/s
+shoves. `docs\media\walk_v1_frame*.png` shows it mid-stride.
 
 Everything defaults to the real Medo (`assets/medo_real.xml`); pass
 `--model assets/medo.xml` for the old placeholder.
