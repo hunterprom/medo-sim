@@ -59,10 +59,15 @@ def main():
     layout = layout_for_n_obs(n_in, nu)
     use_lin_vel = layout["obs_lin_vel"]     # sim-only ckpt: lin vel fed as zeros
     use_clock = layout["obs_gait_clock"]    # synthesized here from wall time
+    # heading error (straight-line policies): on the real dog this is the
+    # gyro wz integral minus the commanded wz integral. With no IMU yet it is
+    # held at zero, which tells the policy "perfectly on line" -- safe on the
+    # bench, but real straight-line correction needs the MPU6050.
+    use_heading = layout.get("obs_heading_err", False)
     agent = PPO(n_in, nu, PPOConfig(), device="cpu")
     agent.load(args.checkpoint)
     print(f"loaded {args.checkpoint} ({n_in} obs, lin_vel={use_lin_vel}, "
-          f"gait_clock={use_clock})")
+          f"gait_clock={use_clock}, heading_err={use_heading})")
     print(__doc__)
 
     ser = None
@@ -123,6 +128,10 @@ def main():
                 ph = 2.0 * np.pi * gait_phase
                 segs.append(np.array([np.sin(ph), np.cos(ph)]))
                 gait_phase = (gait_phase + dt * 1.0) % 1.0
+            if use_heading:
+                # no IMU: zero heading error (sin 0, cos 1). With an MPU6050,
+                # integrate gyro wz - command wz here instead.
+                segs.append(np.array([0.0, 1.0]))
             obs = np.concatenate(segs).astype(np.float32)
 
             action = agent.act_deterministic(obs)

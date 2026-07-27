@@ -204,7 +204,10 @@ class PPO:
     def load(self, path: str) -> dict:
         ckpt = torch.load(path, map_location=self.device, weights_only=False)
         self.net.load_state_dict(ckpt["net"])
-        self.opt.load_state_dict(ckpt["opt"])
+        # grafted checkpoints drop "opt": Adam moments cannot be reshaped, so
+        # they restart fresh (they rebuild within a few iterations)
+        if "opt" in ckpt:
+            self.opt.load_state_dict(ckpt["opt"])
         self.obs_rms.load_state_dict(ckpt["obs_rms"])
         self.lr = ckpt.get("lr", self.cfg.lr)
         for g in self.opt.param_groups:

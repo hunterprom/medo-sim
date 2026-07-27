@@ -47,25 +47,36 @@ def main():
     print(f"loaded {args.checkpoint} ({n_in} obs)")
     print(__doc__)
 
+    # straight-line specialists (heading-error obs) were trained on
+    # forward/backward only: cap keys to their envelope. Turning still works
+    # gently -- LEFT/RIGHT rotate the commanded heading and the policy
+    # steers to follow -- but sideways was never trained.
+    if cfg.obs_heading_err:
+        vx_hi, vx_lo, vy_cap, wz_cap = 0.5, -0.4, 0.0, 0.3
+        print("straight-line policy: fwd/back capped 0.5/-0.4, no strafing, "
+              "gentle turns only")
+    else:
+        vx_hi, vx_lo, vy_cap, wz_cap = 0.7, -0.5, 0.35, 0.9
+
     command = (np.zeros(3) if args.cmd is None
                else np.array(args.cmd, dtype=float))
     reset_flag = [False]
 
     def on_key(keycode):
-        # caps match EnvConfig command ranges: beyond them the policy is
-        # being asked for speeds it never trained on
+        # caps match the checkpoint's trained command ranges: beyond them the
+        # policy is being asked for speeds it never trained on
         if keycode == KEY_UP:
-            command[0] = min(command[0] + 0.1, 0.7)
+            command[0] = min(command[0] + 0.1, vx_hi)
         elif keycode == KEY_DOWN:
-            command[0] = max(command[0] - 0.1, -0.5)
+            command[0] = max(command[0] - 0.1, vx_lo)
         elif keycode == KEY_LEFT:
-            command[2] = min(command[2] + 0.1, 0.9)
+            command[2] = min(command[2] + 0.1, wz_cap)
         elif keycode == KEY_RIGHT:
-            command[2] = max(command[2] - 0.1, -0.9)
+            command[2] = max(command[2] - 0.1, -wz_cap)
         elif keycode == KEY_A:
-            command[1] = min(command[1] + 0.1, 0.35)
+            command[1] = min(command[1] + 0.1, vy_cap)
         elif keycode == KEY_D:
-            command[1] = max(command[1] - 0.1, -0.35)
+            command[1] = max(command[1] - 0.1, -vy_cap)
         elif keycode == KEY_SPACE:
             command[:] = 0.0
         elif keycode == KEY_BACKSPACE:

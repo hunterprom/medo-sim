@@ -48,6 +48,7 @@ class EnvConfig:
     cmd_wz_range: tuple = (-0.9, 0.9)
     cmd_resample_s: float = 5.0
     zero_cmd_prob: float = 0.1       # some episodes learn to stand still
+    cmd_straight: bool = False       # straight-line specialist: vy = wz = 0
     # action
     action_scale: float = 0.5
     # observation layout: drop base linear velocity for policies meant to run
@@ -60,6 +61,13 @@ class EnvConfig:
     # synthesizes the same clock from a timer.
     obs_gait_clock: bool = False
     gait_clock_hz: float = 1.0
+    # heading error observation: sin/cos of (yaw - commanded heading). The
+    # deploy obs has no compass, so without this the policy can only keep its
+    # AVERAGE yaw rate at zero -- any residual asymmetry integrates into a
+    # slow circle it cannot see. On the real dog this signal is the MPU6050
+    # gyro wz integral minus the commanded wz integral: deployable, unlike
+    # absolute heading.
+    obs_heading_err: bool = False
     # reward scales
     rew_track_lin: float = 1.0
     rew_track_ang: float = 0.5
@@ -85,6 +93,25 @@ class EnvConfig:
     # this 11 cm-leg dog brushes a thigh capsule ~1% of steps, and killing
     # the episode for that teaches the policy that walking is lethal
     rew_limb_contact: float = -0.15
+    # --- straight-walk shaping (all off by default; train.py --straight) ---
+    # heading hold: squared error between actual yaw and the commanded
+    # heading (initial yaw + integral of commanded wz). The policy cannot
+    # observe absolute heading, but zero net yaw per gait cycle is learnable
+    # and is exactly what stops veering-into-circles.
+    rew_heading: float = 0.0
+    # velocity across the commanded track, in the WORLD frame: a robot that
+    # has yawed but keeps body vy = 0 walks a circle without body-frame
+    # tracking ever noticing
+    rew_lateral: float = 0.0
+    # trot symmetry: diagonal foot pairs (fr+bl, fl+br) must displace alike
+    # (y mirrored). Measured at the feet, because the export's per-leg joint
+    # sign conventions are chirally inconsistent and joint-space symmetry
+    # would lie.
+    rew_symmetry: float = 0.0
+    # stance anchoring: quadratic pull toward the home keyframe; hips (not
+    # needed for a straight trot) pinned much harder
+    rew_pose: float = 0.0
+    rew_hip_pose: float = 0.0
     # domain randomization
     randomize: bool = True
     friction_range: tuple = (0.5, 1.25)
@@ -110,6 +137,10 @@ def layout_for_n_obs(n_obs: int, nu: int = 12) -> dict:
         base: dict(obs_lin_vel=False, obs_gait_clock=False),
         base + 5: dict(obs_lin_vel=True, obs_gait_clock=True),
         base + 2: dict(obs_lin_vel=False, obs_gait_clock=True),
+        base + 4: dict(obs_lin_vel=False, obs_gait_clock=True,
+                       obs_heading_err=True),
+        base + 7: dict(obs_lin_vel=True, obs_gait_clock=True,
+                       obs_heading_err=True),
     }
     if n_obs not in layouts:
         raise ValueError(f"no known obs layout has size {n_obs} for {nu} joints")
@@ -123,6 +154,21 @@ def quat_rotate_inverse(q: np.ndarray, v: np.ndarray) -> np.ndarray:
     b = 2.0 * w * np.cross(vec, v)
     c = 2.0 * vec * np.dot(vec, v)
     return a - b + c
+
+
+def quat_rotate_inverse_mat(q: np.ndarray, V: np.ndarray) -> np.ndarray:
+    """Rotate rows of V (N, 3) from world frame into the frame of q (wxyz)."""
+    w, vec = q[0], q[1:]
+    a = V * (2.0 * w * w - 1.0)
+    b = 2.0 * w * np.cross(vec, V)
+    c = 2.0 * vec * (V @ vec)[:, None]
+    return a - b + c
+
+
+def yaw_of(q: np.ndarray) -> float:
+    """Yaw (world Z rotation) of quaternion q (wxyz)."""
+    w, x, y, z = q
+    return float(np.arctan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z)))
 
 
 class MedoEnv:
@@ -140,7 +186,8 @@ class MedoEnv:
         self.nu = self.model.nu
         self.n_obs = (3 + 3 + (3 if self.cfg.obs_lin_vel else 0)
                       + self.nu + self.nu + self.nu + 3
-                      + (2 if self.cfg.obs_gait_clock else 0))
+                      + (2 if self.cfg.obs_gait_clock else 0)
+                      + (2 if self.cfg.obs_heading_err else 0))
 
         # default pose from the "home" keyframe (required)
         key_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_KEY, "home")
@@ -171,6 +218,24 @@ class MedoEnv:
         self.limb_geoms = np.array(limb)
         self.illegal_geoms = np.array(terminal)
 
+        # symmetry term: foot order fr, fl, br, bl by geom name; disabled if
+        # the model lacks these names (e.g. the placeholder quadruped)
+        order = []
+        for leg in ("fr", "fl", "br", "bl"):
+            gid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM,
+                                    f"{leg}_foot")
+            if gid >= 0 and gid in foot:
+                order.append(int(np.where(self.foot_geoms == gid)[0][0]))
+        self._sym_feet = np.array(order) if len(order) == 4 else None
+        if self._sym_feet is not None:
+            d = mujoco.MjData(self.model)
+            d.qpos[:] = self.model.key_qpos[key_id]
+            mujoco.mj_kinematics(self.model, d)
+            self._home_foot_off = quat_rotate_inverse_mat(
+                self.home_qpos[3:7],
+                d.geom_xpos[self.foot_geoms[self._sym_feet]] - self.home_qpos[0:3])
+        self._hip_idx = np.arange(0, self.nu, 3)  # joint order: <leg>_hip first
+
         # joint ranges for clipping position targets
         self.jnt_lo = self.model.jnt_range[1:, 0].copy()
         self.jnt_hi = self.model.jnt_range[1:, 1].copy()
@@ -191,12 +256,15 @@ class MedoEnv:
             np.zeros(self.nu),
             np.zeros(3),
             np.zeros(2 if c.obs_gait_clock else 0),
+            # heading error: gyro-integration noise on the real dog
+            np.full(2 if c.obs_heading_err else 0, c.noise_gravity),
         ])
         self._gravity_world = np.array([0.0, 0.0, -1.0])
         self._vel6 = np.zeros(6)
 
         self.command = np.zeros(3)
         self.gait_phase = 0.0
+        self.heading_ref = 0.0
         self.prev_action = np.zeros(self.nu)
         self.air_time = np.zeros(len(self.foot_geoms))
         self.prev_contact = np.zeros(len(self.foot_geoms), dtype=bool)
@@ -237,6 +305,7 @@ class MedoEnv:
                                            self.data.qvel[0:3])
         self.ang_vel = self.data.qvel[3:6].copy()
         self.gravity = quat_rotate_inverse(self.data.qpos[3:7], self._gravity_world)
+        self.yaw = yaw_of(self.data.qpos[3:7])
         # contacts against the floor, vectorized over the contact buffer
         ncon = self.data.ncon
         self.foot_contact = np.zeros(len(self.foot_geoms), dtype=bool)
@@ -257,6 +326,8 @@ class MedoEnv:
         c = self.cfg
         if self.rng.random() < c.zero_cmd_prob:
             return np.zeros(3)
+        if c.cmd_straight:
+            return np.array([self.rng.uniform(*c.cmd_vx_range), 0.0, 0.0])
         return np.array([
             self.rng.uniform(*c.cmd_vx_range),
             self.rng.uniform(*c.cmd_vy_range),
@@ -285,6 +356,7 @@ class MedoEnv:
 
         self.command = self._sample_command()
         self.gait_phase = float(self.rng.random())  # random phase: no fixed t=0
+        self.heading_ref = yaw_of(self.data.qpos[3:7])
         self.prev_action[:] = 0.0
         self.air_time[:] = 0.0
         self.prev_contact[:] = False
@@ -306,6 +378,8 @@ class MedoEnv:
 
         self.step_count += 1
         self.gait_phase = (self.gait_phase + self.dt * c.gait_clock_hz) % 1.0
+        # commanded heading advances with the wz command active this step
+        self.heading_ref += self.command[2] * self.dt
 
         if c.randomize and self.step_count % self.push_interval_steps == 0:
             self.data.qvel[0:2] += self.rng.uniform(-c.push_vel, c.push_vel, size=2)
@@ -346,6 +420,9 @@ class MedoEnv:
         if self.cfg.obs_gait_clock:
             ph = 2.0 * np.pi * self.gait_phase
             segs.append(np.array([np.sin(ph), np.cos(ph)]))
+        if self.cfg.obs_heading_err:
+            herr = (self.yaw - self.heading_ref + np.pi) % (2.0 * np.pi) - np.pi
+            segs.append(np.array([np.sin(herr), np.cos(herr)]))
         obs = np.concatenate(segs)
         if self.cfg.obs_noise:
             obs += self.rng.uniform(-1.0, 1.0, self.n_obs) * self.noise_vec
@@ -383,7 +460,15 @@ class MedoEnv:
         cmd_xy = self.command[:2]
         n_xy = float(np.linalg.norm(cmd_xy))
         if n_xy > 0.1:
-            proj = float(self.lin_vel[:2] @ cmd_xy) / n_xy
+            if c.cmd_straight:
+                # pay only for advance along the commanded WORLD-frame track:
+                # walking a curve with the nose forward earns less by
+                # construction, so circling is never full credit
+                t = np.array([np.cos(self.heading_ref),
+                              np.sin(self.heading_ref)])
+                proj = float(self.data.qvel[0:2] @ t) * np.sign(self.command[0])
+            else:
+                proj = float(self.lin_vel[:2] @ cmd_xy) / n_xy
             comps["progress"] = (c.rew_progress
                                  * float(np.clip(proj, -n_xy, n_xy)) / n_xy)
         n_wz = abs(self.command[2])
@@ -391,6 +476,34 @@ class MedoEnv:
             projw = float(self.ang_vel[2]) * np.sign(self.command[2])
             comps["ang_progress"] = (c.rew_ang_progress
                                      * float(np.clip(projw, -n_wz, n_wz)) / n_wz)
+
+        if c.rew_pose or c.rew_hip_pose:
+            dq = self.data.qpos[7:] - self.default_joint_pos
+            if c.rew_pose:
+                comps["pose"] = c.rew_pose * float(dq @ dq)
+            if c.rew_hip_pose:
+                hq = dq[self._hip_idx]
+                comps["hip_pose"] = c.rew_hip_pose * float(hq @ hq)
+        if c.rew_heading or c.rew_lateral:
+            if c.rew_heading:
+                err = (self.yaw - self.heading_ref + np.pi) \
+                    % (2.0 * np.pi) - np.pi
+                comps["heading"] = c.rew_heading * err * err
+            if c.rew_lateral:
+                v_lat = (-np.sin(self.heading_ref) * self.data.qvel[0]
+                         + np.cos(self.heading_ref) * self.data.qvel[1])
+                comps["lateral"] = c.rew_lateral * v_lat * v_lat
+        if c.rew_symmetry and self._sym_feet is not None:
+            off = quat_rotate_inverse_mat(
+                self.data.qpos[3:7],
+                self.data.geom_xpos[self.foot_geoms[self._sym_feet]]
+                - self.data.qpos[0:3]) - self._home_foot_off
+            # rows: fr, fl, br, bl. Trot diagonals (fr+bl, fl+br) displace
+            # alike with y mirrored across the midline.
+            m = np.array([1.0, -1.0, 1.0])
+            e1 = off[0] - off[3] * m
+            e2 = off[1] - off[2] * m
+            comps["symmetry"] = c.rew_symmetry * float(e1 @ e1 + e2 @ e2)
         self.air_time += self.dt
         self.air_time[contact] = 0.0
         self.prev_contact = contact

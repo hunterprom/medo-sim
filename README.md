@@ -28,15 +28,22 @@ docs/EXPORT_GUIDE.md         how the Fusion 360 export was made
 ```
 .venv\Scripts\activate
 python view.py                          # look at Medo
-python play.py policies\medo_walk_v1.pt --cmd 0.4 0 0   # watch the trained walk
-python eval.py policies\medo_walk_v1.pt                 # measure its tracking
-python train.py --run-name my_run --deploy --gait-clock # train further
+python play.py policies\medo_walk_v2.pt --cmd 0.4 0 0   # watch the straight walk
+python eval.py policies\medo_walk_v2.pt --probes straight  # measure drift
+python train.py --run-name my_run --deploy --gait-clock --straight  # train further
 ```
 
-`policies\medo_walk_v1.pt` is the trained omnidirectional walking policy
-(2026-07-25): deploy-layout observations (IMU + gait clock, no lin vel),
-walks/strafes/turns with zero falls in eval, trained against 0.75 m/s
-shoves. `docs\media\walk_v1_frame*.png` shows it mid-stride.
+`policies\medo_walk_v2.pt` is the **straight-line specialist** (2026-07-27):
+symmetric trot that holds the default stance and walks a true line --
+3.5-9 cm/m lateral drift and under ~3.5 deg/m yaw drift (v1 circled at
+39-66 cm/m and 15-50 deg/m). It adds a heading-error observation (sin/cos
+of yaw off the commanded line -- on the real dog: integrate the MPU6050
+gyro), so it actively steers back instead of circling blind. Envelope:
+forward 0.5, backward 0.4 m/s, no strafing, gentle turns.
+
+`policies\medo_walk_v1.pt` is the older omnidirectional policy
+(2026-07-25): walks/strafes/turns with zero falls, but veers into circles
+(no heading feedback). `docs\media\walk_v*_frame*.png` show both mid-stride.
 
 Everything defaults to the real Medo (`assets/medo_real.xml`); pass
 `--model assets/medo.xml` for the old placeholder.
