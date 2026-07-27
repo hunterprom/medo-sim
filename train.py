@@ -67,6 +67,8 @@ def main():
     if args.straight:
         env_cfg.cmd_straight = True
         env_cfg.obs_heading_err = True
+        env_cfg.rew_limb_contact = -0.3
+        env_cfg.rew_body_contact = -2.0
         env_cfg.rew_heading = -4.0
         env_cfg.rew_lateral = -3.0
         env_cfg.rew_symmetry = -20.0

@@ -93,6 +93,9 @@ class EnvConfig:
     # this 11 cm-leg dog brushes a thigh capsule ~1% of steps, and killing
     # the episode for that teaches the policy that walking is lethal
     rew_limb_contact: float = -0.15
+    # body/torso floor contact still terminates, but ALSO costs points on
+    # that final step: only the toes may ever touch the ground for free
+    rew_body_contact: float = -1.0
     # --- straight-walk shaping (all off by default; train.py --straight) ---
     # heading hold: squared error between actual yaw and the commanded
     # heading (initial yaw + integral of commanded wz). The policy cannot
@@ -457,6 +460,8 @@ class MedoEnv:
                 0.0, float(contact.sum()) - 2.0)
         if self.limb_contacts:
             comps["limb_contact"] = c.rew_limb_contact * self.limb_contacts
+        if self.illegal_contact:
+            comps["body_contact"] = c.rew_body_contact
         cmd_xy = self.command[:2]
         n_xy = float(np.linalg.norm(cmd_xy))
         if n_xy > 0.1:
