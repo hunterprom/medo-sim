@@ -103,8 +103,11 @@ def rough_boxes(difficulty: float, rng: np.random.Generator,
                 h = 0.012            # level spawn tiles
             else:
                 h = 0.004 + rng.uniform(0.0, amp)
-            boxes.append((np.array([x, y, h / 2]),
-                          np.array([cell / 2 + 0.001, cell / 2 + 0.001, h / 2]),
+            # bottom 5 mm below the floor: a bottom face exactly at z=0
+            # z-fights the floor plane into flickering blotches
+            half = (h + 0.005) / 2
+            boxes.append((np.array([x, y, h - half]),
+                          np.array([cell / 2 + 0.001, cell / 2 + 0.001, half]),
                           np.array([1.0, 0.0, 0.0, 0.0])))
     return boxes[:pool]
 
@@ -118,10 +121,13 @@ def stair_boxes(difficulty: float, rng: np.random.Generator,
     boxes = []
     for k in range(1, max_steps_per_side + 1):
         x = SPAWN_R + (k - 0.5) * run
-        half_h = k * rise / 2
+        top = k * rise
+        # top unchanged, bottom 5 mm below the floor (coplanar bottom faces
+        # z-fight the floor plane into flickering blotches)
+        half_h = (top + 0.005) / 2
         # slight x-overlap: exactly touching boxes render hairline seams
         size = np.array([run / 2 + 0.003, 3.0, half_h])
         for sx in (+1, -1):
-            boxes.append((np.array([sx * x, 0.0, half_h]), size.copy(),
+            boxes.append((np.array([sx * x, 0.0, top - half_h]), size.copy(),
                           np.array([1.0, 0.0, 0.0, 0.0])))
     return boxes
