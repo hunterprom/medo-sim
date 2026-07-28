@@ -39,6 +39,9 @@ def parse_args():
                    help="straight-line specialist: forward/backward commands "
                         "only, plus heading-hold, trot-symmetry and "
                         "home-pose rewards")
+    p.add_argument("--terrain", action="store_true",
+                   help="procedural terrain: rough ground, slopes, stairs "
+                        "with adaptive per-env difficulty")
     p.add_argument("--push-vel", type=float, default=None,
                    help="override domain-randomization push velocity (m/s)")
     p.add_argument("--cmd-vx", nargs=2, type=float, default=None,
@@ -74,6 +77,8 @@ def main():
         env_cfg.rew_symmetry = -20.0
         env_cfg.rew_pose = -0.08
         env_cfg.rew_hip_pose = -1.0
+    if args.terrain:
+        env_cfg.terrain = True
     if args.push_vel is not None:
         env_cfg.push_vel = args.push_vel
     venv = ThreadVecEnv(args.num_envs, env_cfg, seed=args.seed)
@@ -102,13 +107,15 @@ def main():
     logger = csv.writer(log_file)
     if log_file.tell() == 0:
         logger.writerow(["iter", "global_step", "sps", "ep_return", "ep_length",
-                         "pi_loss", "v_loss", "entropy", "kl", "lr"])
+                         "pi_loss", "v_loss", "entropy", "kl", "lr",
+                         "difficulty"])
 
     obs_raw = venv.reset()
     global_step = start_step
     it = 0
     ep_returns: list[float] = []
     ep_lengths: list[float] = []
+    ep_diffs: list[float] = []
     gamma = agent.cfg.gamma
 
     print(f"training on {args.device} | {N} envs x {T} steps per iter "
@@ -145,6 +152,7 @@ def main():
                 for info in ep_infos:
                     ep_returns.append(info["return"])
                     ep_lengths.append(info["length"])
+                    ep_diffs.append(info.get("difficulty", 0.0))
                 obs_raw = next_obs
                 global_step += N
 
@@ -177,13 +185,15 @@ def main():
             sps = int(N * T / (time.time() - t0))
             mean_ret = float(np.mean(ep_returns[-50:])) if ep_returns else 0.0
             mean_len = float(np.mean(ep_lengths[-50:])) if ep_lengths else 0.0
+            mean_diff = float(np.mean(ep_diffs[-50:])) if ep_diffs else 0.0
             print(f"it {it:5d} | step {global_step:>10,} | sps {sps:>6,} "
                   f"| ret {mean_ret:7.2f} | len {mean_len:6.0f} "
+                  f"| diff {mean_diff:.2f} "
                   f"| kl {stats['kl']:.4f} | lr {stats['lr']:.1e}")
             logger.writerow([it, global_step, sps, f"{mean_ret:.3f}", f"{mean_len:.1f}",
                              f"{stats['pi_loss']:.4f}", f"{stats['v_loss']:.4f}",
                              f"{stats['entropy']:.4f}", f"{stats['kl']:.5f}",
-                             f"{stats['lr']:.2e}"])
+                             f"{stats['lr']:.2e}", f"{mean_diff:.3f}"])
             log_file.flush()
 
             if it % args.ckpt_every == 0:

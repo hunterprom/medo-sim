@@ -36,12 +36,19 @@ def main():
     p.add_argument("--cmd", nargs=3, type=float, default=None,
                    metavar=("VX", "VY", "WZ"),
                    help="start with this command active (keys still adjust)")
+    p.add_argument("--terrain", action="store_true",
+                   help="procedural terrain world (note: after an in-viewer "
+                        "reset the regenerated terrain may render stale)")
+    p.add_argument("--difficulty", type=float, default=0.5,
+                   help="terrain difficulty 0..1 (with --terrain)")
     args = p.parse_args()
 
     n_in = PPO.peek_n_obs(args.checkpoint)
     cfg = EnvConfig(model_path=args.model, randomize=False, obs_noise=False,
-                    **layout_for_n_obs(n_in))
+                    terrain=args.terrain, terrain_diff_up=0.0,
+                    terrain_diff_down=0.0, **layout_for_n_obs(n_in))
     env = MedoEnv(cfg, seed=0)
+    env.difficulty = float(np.clip(args.difficulty, 0.0, 1.0))
     agent = PPO(env.n_obs, env.nu, device=args.device)
     agent.load(args.checkpoint)
     print(f"loaded {args.checkpoint} ({n_in} obs)")

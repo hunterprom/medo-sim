@@ -25,6 +25,8 @@ import os
 import mujoco
 import numpy as np
 
+from medo_sim.terrain import make_heights
+
 _ASSETS = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets"
 )
@@ -115,6 +117,16 @@ class EnvConfig:
     # needed for a straight trot) pinned much harder
     rew_pose: float = 0.0
     rew_hip_pose: float = 0.0
+    # --- procedural terrain (blind: no new observations) ---
+    terrain: bool = False
+    terrain_extent: float = 6.0      # hfield side length, meters
+    terrain_res: int = 192           # cells per side (~3.1 cm cells)
+    terrain_kinds: tuple = ("rough", "slope", "stairs")
+    terrain_flat_prob: float = 0.2   # fraction of episodes on plain ground
+    # adaptive curriculum per env: difficulty in [0, 1], nudged up when an
+    # episode survives and covers >half its commanded distance, down on falls
+    terrain_diff_up: float = 0.05
+    terrain_diff_down: float = 0.03
     # domain randomization
     randomize: bool = True
     friction_range: tuple = (0.5, 1.25)
@@ -178,7 +190,7 @@ class MedoEnv:
     def __init__(self, cfg: EnvConfig | None = None, seed: int = 0):
         self.cfg = cfg or EnvConfig()
         self.rng = np.random.default_rng(seed)
-        self.model = mujoco.MjModel.from_xml_path(self.cfg.model_path)
+        self.model = self._load_model()
         self.data = mujoco.MjData(self.model)
 
         self.dt = self.model.opt.timestep * self.cfg.decimation
@@ -201,6 +213,18 @@ class MedoEnv:
 
         self.torso_body = self._find_torso_body()
         self.floor_geom = self._find_floor_geom()
+        self.difficulty = 0.0
+        self.terrain_kind = "flat"
+        self._spawn_z = 0.0
+        self._track_progress = 0.0
+        self._cmd_dist = 0.0
+        self._ep_fell = False
+        self.terrain_hid = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_HFIELD, "terrain")
+        terrain_gid = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_GEOM, "terrain")
+        self.ground_geoms = np.array(
+            [self.floor_geom] + ([terrain_gid] if terrain_gid >= 0 else []))
         # feet ("foot" in name) may touch the floor; thigh/shank contacts are
         # penalized but survivable; anything else touching terminates
         foot, limb, terminal = [], [], []
@@ -277,6 +301,30 @@ class MedoEnv:
 
     # ------------------------------------------------------------- helpers
 
+    def _load_model(self) -> mujoco.MjModel:
+        if not self.cfg.terrain:
+            return mujoco.MjModel.from_xml_path(self.cfg.model_path)
+        # inject a heightfield; the patched copy lives next to the source so
+        # relative mesh paths keep resolving. Atomic write -- envs are built
+        # sequentially, and every env writes identical content anyway.
+        src = self.cfg.model_path
+        n, ext = self.cfg.terrain_res, self.cfg.terrain_extent
+        dst = os.path.join(os.path.dirname(src),
+                           f"_terrain_{os.path.basename(src)}")
+        with open(src) as f:
+            xml = f.read()
+        asset = (f'<asset><hfield name="terrain" nrow="{n}" ncol="{n}" '
+                 f'size="{ext / 2} {ext / 2} 0.4 0.1"/></asset>')
+        geom = ('<geom name="terrain" type="hfield" hfield="terrain" '
+                'pos="0 0 0" friction="1.0 0.005 0.0001"/>')
+        xml = xml.replace("<worldbody>", "<worldbody>" + geom, 1)
+        xml = xml.replace("</mujoco>", asset + "</mujoco>")
+        tmp = dst + ".tmp"
+        with open(tmp, "w") as f:
+            f.write(xml)
+        os.replace(tmp, dst)
+        return mujoco.MjModel.from_xml_path(dst)
+
     def _find_torso_body(self) -> int:
         bid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
         if bid >= 0:
@@ -317,9 +365,9 @@ class MedoEnv:
         if ncon:
             g1 = self.data.contact.geom1[:ncon]
             g2 = self.data.contact.geom2[:ncon]
-            on_floor = (g1 == self.floor_geom) | (g2 == self.floor_geom)
+            on_floor = np.isin(g1, self.ground_geoms) | np.isin(g2, self.ground_geoms)
             if on_floor.any():
-                other = np.where(g1[on_floor] == self.floor_geom,
+                other = np.where(np.isin(g1[on_floor], self.ground_geoms),
                                  g2[on_floor], g1[on_floor])
                 self.illegal_contact = bool(np.isin(other, self.illegal_geoms).any())
                 self.limb_contacts = int(np.isin(self.limb_geoms, other).sum())
@@ -339,8 +387,34 @@ class MedoEnv:
 
     # ------------------------------------------------------------- API
 
+    def _regen_terrain(self):
+        c = self.cfg
+        if self.rng.random() < c.terrain_flat_prob:
+            kind = "flat"
+        else:
+            kind = str(self.rng.choice(list(c.terrain_kinds)))
+        h = make_heights(kind, self.difficulty, c.terrain_res,
+                         c.terrain_extent, self.rng)
+        zmax = max(float(h.max()), 0.05)
+        self.model.hfield_data[:] = (h / zmax).ravel()
+        self.model.hfield_size[self.terrain_hid][2] = zmax
+        self.terrain_kind = kind
+        self._spawn_z = float(h[c.terrain_res // 2, c.terrain_res // 2])
+
     def reset(self) -> np.ndarray:
         c = self.cfg
+        if c.terrain:
+            # adaptive curriculum, judged on the episode that just ended
+            if self.step_count > 0:
+                frac = (self._track_progress / self._cmd_dist
+                        if self._cmd_dist > 0.05 else 1.0)
+                if self._ep_fell:
+                    self.difficulty = max(0.0,
+                                          self.difficulty - c.terrain_diff_down)
+                elif frac > 0.5:
+                    self.difficulty = min(1.0,
+                                          self.difficulty + c.terrain_diff_up)
+            self._regen_terrain()
         if c.randomize:
             self.model.geom_friction[self.floor_geom, 0] = self.rng.uniform(*c.friction_range)
             scale = self.rng.uniform(*c.mass_scale_range)
@@ -351,6 +425,8 @@ class MedoEnv:
 
         mujoco.mj_resetData(self.model, self.data)
         qpos = self.home_qpos.copy()
+        if c.terrain:
+            qpos[2] += self._spawn_z + 0.005
         qpos[7:] += self.rng.uniform(-0.05, 0.05, size=self.nu)
         self.data.qpos[:] = qpos
         self.data.qvel[:] = self.rng.uniform(-0.05, 0.05, size=self.model.nv)
@@ -366,6 +442,9 @@ class MedoEnv:
         self.step_count = 0
         self.ep_reward_sums = {}
         self.ep_return = 0.0
+        self._track_progress = 0.0
+        self._cmd_dist = 0.0
+        self._ep_fell = False
         self._refresh_state()
         return self._observe()
 
@@ -398,6 +477,15 @@ class MedoEnv:
 
         terminated = bool(self.gravity[2] > c.max_tilt_gz) or self.illegal_contact
         truncated = self.step_count >= self.max_steps and not terminated
+        if c.terrain:
+            # curriculum bookkeeping: distance banked along the commanded track
+            n_vx = abs(self.command[0])
+            if n_vx > 0.1:
+                t = np.array([np.cos(self.heading_ref), np.sin(self.heading_ref)])
+                proj = float(self.data.qvel[0:2] @ t) * np.sign(self.command[0])
+                self._track_progress += max(0.0, min(proj, n_vx)) * self.dt
+                self._cmd_dist += n_vx * self.dt
+            self._ep_fell = terminated
 
         obs = self._observe()
         self.prev_action = action.copy()
@@ -407,6 +495,7 @@ class MedoEnv:
             info["episode"] = {
                 "return": self.ep_return,
                 "length": self.step_count,
+                "difficulty": self.difficulty,
                 **{f"rew_{k}": v / n for k, v in self.ep_reward_sums.items()},
             }
         return obs, reward, terminated, truncated, info
