@@ -25,7 +25,7 @@ import os
 import mujoco
 import numpy as np
 
-from medo_sim.terrain import make_heights
+from medo_sim.terrain import make_heights, slope_boxes, stair_boxes
 
 _ASSETS = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets"
@@ -123,6 +123,11 @@ class EnvConfig:
     terrain_res: int = 192           # cells per side (~3.1 cm cells)
     terrain_kinds: tuple = ("rough", "slope", "stairs")
     terrain_flat_prob: float = 0.2   # fraction of episodes on plain ground
+    # slopes/stairs are built from a pool of BOX geoms: box contacts are
+    # analytic and exact, while sphere-vs-hfield contacts on tilted prisms
+    # sink by up to the sphere radius (feet visibly clip into slopes).
+    # The hfield is kept only for rough ground, where bumps mask it.
+    terrain_box_pool: int = 32
     # adaptive curriculum per env: difficulty in [0, 1], nudged up when an
     # episode survives and covers >half its commanded distance, down on falls
     terrain_diff_up: float = 0.05
@@ -223,8 +228,14 @@ class MedoEnv:
             self.model, mujoco.mjtObj.mjOBJ_HFIELD, "terrain")
         terrain_gid = mujoco.mj_name2id(
             self.model, mujoco.mjtObj.mjOBJ_GEOM, "terrain")
+        self._terrain_gid = terrain_gid
+        self.box_gids = [g for g in (
+            mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM,
+                              f"tbox{i:02d}")
+            for i in range(self.cfg.terrain_box_pool)) if g >= 0]
         self.ground_geoms = np.array(
-            [self.floor_geom] + ([terrain_gid] if terrain_gid >= 0 else []))
+            [self.floor_geom] + ([terrain_gid] if terrain_gid >= 0 else [])
+            + self.box_gids)
         # feet ("foot" in name) may touch the floor; thigh/shank contacts are
         # penalized but survivable; anything else touching terminates
         foot, limb, terminal = [], [], []
@@ -318,9 +329,14 @@ class MedoEnv:
         # stiff contact (solref 0.01) + priority so it wins the combination
         # with the feet: default softness let feet sink ~1-2 cm into slopes,
         # which reads as the robot clipping into the terrain
-        geom = ('<geom name="terrain" type="hfield" hfield="terrain" '
-                'pos="0 0 0" friction="1.0 0.005 0.0001" '
-                'solref="0.01 1" priority="1"/>')
+        common = ('friction="1.0 0.005 0.0001" solref="0.01 1" priority="1"')
+        geom = (f'<geom name="terrain" type="hfield" hfield="terrain" '
+                f'pos="0 0 0" {common}/>')
+        # parked box pool for exact slopes/stairs; repositioned per episode
+        geom += "".join(
+            f'<geom name="tbox{i:02d}" type="box" size="0.1 0.1 0.1" '
+            f'pos="0 0 -10" {common}/>'
+            for i in range(self.cfg.terrain_box_pool))
         xml = xml.replace("<worldbody>", "<worldbody>" + geom, 1)
         xml = xml.replace("</mujoco>", asset + "</mujoco>")
         tmp = dst + ".tmp"
@@ -391,19 +407,56 @@ class MedoEnv:
 
     # ------------------------------------------------------------- API
 
+    SLOPE_SPAWN_H = 0.3   # spawn height on box slopes: leaves a downhill ramp
+
     def _regen_terrain(self):
         c = self.cfg
         if self.rng.random() < c.terrain_flat_prob:
             kind = "flat"
         else:
             kind = str(self.rng.choice(list(c.terrain_kinds)))
-        h = make_heights(kind, self.difficulty, c.terrain_res,
-                         c.terrain_extent, self.rng)
-        zmax = max(float(h.max()), 0.05)
-        self.model.hfield_data[:] = (h / zmax).ravel()
-        self.model.hfield_size[self.terrain_hid][2] = zmax
+        # hfield carries only rough ground; slopes/stairs use exact boxes
+        if kind == "rough":
+            h = make_heights(kind, self.difficulty, c.terrain_res,
+                             c.terrain_extent, self.rng)
+            zmax = max(float(h.max()), 0.05)
+            self.model.hfield_data[:] = (h / zmax).ravel()
+            self.model.hfield_size[self.terrain_hid][2] = zmax
+            self.model.geom_pos[self._terrain_gid][2] = 0.0
+            self._spawn_z = float(h[c.terrain_res // 2, c.terrain_res // 2])
+        else:
+            # tuck the flat hfield just under the floor plane: coplanar
+            # surfaces z-fight into a mottled mess
+            self.model.hfield_data[:] = 0.0
+            self.model.hfield_size[self.terrain_hid][2] = 0.05
+            self.model.geom_pos[self._terrain_gid][2] = -0.02
+            self._spawn_z = 0.0
+        if kind == "slope":
+            boxes = slope_boxes(self.difficulty, self.rng)
+            # raise the ramp so the spawn sits mid-incline: uphill continues,
+            # downhill runs ~2 m before meeting the floor -- both directions
+            # get trained
+            boxes = [(pos + np.array([0.0, 0.0, self.SLOPE_SPAWN_H]),
+                      size, quat) for pos, size, quat in boxes]
+            self._spawn_z = self.SLOPE_SPAWN_H + 0.02
+        elif kind == "stairs":
+            boxes = stair_boxes(self.difficulty, self.rng,
+                                max_steps_per_side=c.terrain_box_pool // 2)
+        else:
+            boxes = []
+        for i, gid in enumerate(self.box_gids):
+            if i < len(boxes):
+                pos, size, quat = boxes[i]
+                self.model.geom_pos[gid] = pos
+                self.model.geom_size[gid] = size
+                self.model.geom_quat[gid] = quat
+            else:
+                self.model.geom_pos[gid] = (0.0, 0.0, -10.0)
+                self.model.geom_size[gid] = (0.1, 0.1, 0.1)
+                self.model.geom_quat[gid] = (1.0, 0.0, 0.0, 0.0)
+            self.model.geom_rbound[gid] = float(
+                np.linalg.norm(self.model.geom_size[gid]))
         self.terrain_kind = kind
-        self._spawn_z = float(h[c.terrain_res // 2, c.terrain_res // 2])
 
     def reset(self) -> np.ndarray:
         c = self.cfg

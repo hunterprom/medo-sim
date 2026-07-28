@@ -42,6 +42,9 @@ def parse_args():
     p.add_argument("--terrain", action="store_true",
                    help="procedural terrain: rough ground, slopes, stairs "
                         "with adaptive per-env difficulty")
+    p.add_argument("--flat-prob", type=float, default=None,
+                   help="override the fraction of flat-ground episodes "
+                        "(terrain mode; default from EnvConfig)")
     p.add_argument("--push-vel", type=float, default=None,
                    help="override domain-randomization push velocity (m/s)")
     p.add_argument("--cmd-vx", nargs=2, type=float, default=None,
@@ -79,6 +82,8 @@ def main():
         env_cfg.rew_hip_pose = -1.0
     if args.terrain:
         env_cfg.terrain = True
+    if args.flat_prob is not None:
+        env_cfg.terrain_flat_prob = args.flat_prob
     if args.push_vel is not None:
         env_cfg.push_vel = args.push_vel
     venv = ThreadVecEnv(args.num_envs, env_cfg, seed=args.seed)

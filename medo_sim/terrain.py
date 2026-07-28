@@ -53,3 +53,50 @@ def make_heights(kind: str, difficulty: float, n: int, extent: float,
     h = ctr * (1.0 - blend) + h * blend
     h -= h.min()
     return h
+
+
+def _yquat(angle: float) -> np.ndarray:
+    """Quaternion (wxyz) for a rotation about the world y axis."""
+    return np.array([np.cos(angle / 2), 0.0, np.sin(angle / 2), 0.0])
+
+
+def _xquat(angle: float) -> np.ndarray:
+    return np.array([np.cos(angle / 2), np.sin(angle / 2), 0.0, 0.0])
+
+
+def slope_boxes(difficulty: float, rng: np.random.Generator) -> list:
+    """One large tilted box: an exact analytic slope (no hfield sink).
+
+    The top face passes through z=0 at the origin, so the dog spawns
+    directly on the incline. Returns [(pos, size, quat_wxyz), ...].
+    """
+    d = float(np.clip(difficulty, 0.0, 1.0))
+    ang = np.radians(4.0 + 10.0 * d) * (1 if rng.random() < 0.5 else -1)
+    along_x = rng.random() < 0.7
+    size = np.array([4.0, 4.0, 0.25])
+    if along_x:
+        quat = _yquat(-ang)
+        local_z = np.array([-np.sin(ang), 0.0, np.cos(ang)])
+    else:
+        quat = _xquat(ang)
+        local_z = np.array([0.0, -np.sin(ang), np.cos(ang)])
+    # sink the box along its own z so the TOP face plane contains the origin
+    pos = -size[2] * local_z
+    return [(pos, size, quat)]
+
+
+def stair_boxes(difficulty: float, rng: np.random.Generator,
+                max_steps_per_side: int = 16) -> list:
+    """Pyramid stairs from exact box primitives, climbing away from spawn."""
+    d = float(np.clip(difficulty, 0.0, 1.0))
+    rise = 0.02 + 0.05 * d
+    run = 0.14 + rng.uniform(-0.02, 0.04)
+    boxes = []
+    for k in range(1, max_steps_per_side + 1):
+        x = SPAWN_R + (k - 0.5) * run
+        half_h = k * rise / 2
+        size = np.array([run / 2, 3.0, half_h])
+        for sx in (+1, -1):
+            boxes.append((np.array([sx * x, 0.0, half_h]), size.copy(),
+                          np.array([1.0, 0.0, 0.0, 0.0])))
+    return boxes

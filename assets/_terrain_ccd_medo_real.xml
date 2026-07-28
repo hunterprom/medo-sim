@@ -1,0 +1,172 @@
+<mujoco model="medo_real">
+  <compiler angle="radian" autolimits="true" meshdir="robot_dog_description/meshes" />
+  <option timestep="0.005" integrator="implicitfast" />
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
+    <rgba haze="0.15 0.25 0.35 1" />
+    <global azimuth="130" elevation="-20" offwidth="1280" offheight="720" />
+    <quality shadowsize="4096" />
+  </visual>
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072" />
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.1" />
+    <material name="shell" rgba="0.75 0.75 0.78 1" />
+    <material name="dark" rgba="0.2 0.2 0.22 1" />
+    <material name="accent" rgba="0.9 0.5 0.1 1" />
+    <mesh name="Robot_leg_f3d_v25_1" file="Robot_leg_f3d_v25_1.stl" scale="0.001 0.001 0.001" inertia="convex" />
+    <mesh name="SHOULDER_v16_1" file="SHOULDER_v16_1.stl" scale="0.001 0.001 0.001" inertia="convex" />
+    <mesh name="SHOULDER_v16_2" file="SHOULDER_v16_2.stl" scale="0.001 0.001 0.001" inertia="convex" />
+    <mesh name="SHOULDER_v16_3" file="SHOULDER_v16_3.stl" scale="0.001 0.001 0.001" inertia="convex" />
+    <mesh name="SHOULDER_v16_4" file="SHOULDER_v16_4.stl" scale="0.001 0.001 0.001" inertia="convex" />
+    <mesh name="Tower_Pro_MG996_v5_1" file="Tower_Pro_MG996_v5_1.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="Tower_Pro_MG996_v5_11" file="Tower_Pro_MG996_v5_11.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="Tower_Pro_MG996_v5_12" file="Tower_Pro_MG996_v5_12.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="Tower_Pro_MG996_v5_13" file="Tower_Pro_MG996_v5_13.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="Tower_Pro_MG996_v5_14" file="Tower_Pro_MG996_v5_14.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="Tower_Pro_MG996_v5_15" file="Tower_Pro_MG996_v5_15.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="Tower_Pro_MG996_v5_16" file="Tower_Pro_MG996_v5_16.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="Tower_Pro_MG996_v5_3" file="Tower_Pro_MG996_v5_3.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="Tower_Pro_MG996_v5_4" file="Tower_Pro_MG996_v5_4.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="Tower_Pro_MG996_v5_6" file="Tower_Pro_MG996_v5_6.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="Tower_Pro_MG996_v5_8" file="Tower_Pro_MG996_v5_8.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="Tower_Pro_MG996_v5_9" file="Tower_Pro_MG996_v5_9.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="Untitled_v9_1" file="Untitled_v9_1.stl" scale="0.001 0.001 0.001" inertia="convex" />
+    <mesh name="Untitled_v9_2" file="Untitled_v9_2.stl" scale="0.001 0.001 0.001" inertia="convex" />
+    <mesh name="base_link_1" file="base_link_1.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="robot_knee_v11_2" file="robot_knee_v11_2.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="robot_knee_v11_3" file="robot_knee_v11_3.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="robot_knee_v11_4" file="robot_knee_v11_4.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="robot_knee_v11_5" file="robot_knee_v11_5.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="robot_leg1_v13_1" file="robot_leg1_v13_1.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="robot_leg1_v13_2" file="robot_leg1_v13_2.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="robot_leg1_v13_3" file="robot_leg1_v13_3.stl" scale="0.001 0.001 0.001" inertia="exact" />
+    <mesh name="robot_leg1_v13_4" file="robot_leg1_v13_4.stl" scale="0.001 0.001 0.001" inertia="exact" />
+  </asset>
+  <default>
+    <default class="medo">
+      <joint damping="0.05" armature="0.008" frictionloss="0.03" />
+      <position kp="15.0" kv="0.25" inheritrange="1" forcerange="-1.3 1.3" />
+      <default class="visual">
+        <geom type="mesh" contype="0" conaffinity="0" group="1" material="shell" density="750.0" />
+        <default class="servo">
+          <geom material="dark" mass="0.055" />
+        </default>
+      </default>
+      <default class="collision">
+        <geom contype="1" conaffinity="0" group="3" mass="0" friction="1.0 0.005 0.0001" rgba="0.9 0.5 0.1 0.5" />
+      </default>
+    </default>
+  </default>
+  <worldbody><geom name="terrain" type="hfield" hfield="terrain" pos="0 0 0" friction="1.0 0.005 0.0001" solref="0.01 1" priority="1"/>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true" />
+    <geom name="floor" type="plane" size="0 0 0.05" material="groundplane" contype="1" conaffinity="1" friction="1.0 0.005 0.0001" />
+    <body name="torso" pos="0 0 0.30" childclass="medo">
+      <freejoint name="root" />
+      <site name="imu" pos="0 0 0" size="0.01" />
+      <geom name="base_vis_0" mesh="base_link_1" pos="0.126110 0.007735 -0.205842" quat="0.707107 0.000000 0.000000 0.707107" class="visual" />
+      <geom name="base_vis_1" mesh="Untitled_v9_1" pos="0.137023 0.013247 -0.014240" quat="0.707107 0.000000 0.000000 0.707107" class="visual" />
+      <geom name="base_vis_2" mesh="Untitled_v9_2" pos="-0.140413 -0.012800 -0.016015" quat="0.707107 0.000000 0.000000 -0.707107" class="visual" />
+      <geom name="base_vis_3" mesh="Robot_leg_f3d_v25_1" pos="0.126110 0.013735 -0.015842" quat="0.707107 0.000000 0.000000 0.707107" class="visual" />
+      <geom name="base_vis_4" mesh="Tower_Pro_MG996_v5_14" pos="0.033859 0.059569 0.002038" quat="0.500000 0.500000 0.500000 -0.500000" class="servo" />
+      <geom name="base_vis_5" mesh="Tower_Pro_MG996_v5_16" pos="-0.031786 0.060810 -0.002107" quat="0.500000 0.500000 -0.500000 0.500000" class="servo" />
+      <geom name="base_vis_6" mesh="Tower_Pro_MG996_v5_13" pos="0.033368 -0.057072 -0.000420" quat="-0.500000 0.500000 0.500000 0.500000" class="servo" />
+      <geom name="base_vis_7" mesh="Tower_Pro_MG996_v5_15" pos="-0.031874 -0.059345 -0.000196" quat="0.500000 -0.500000 0.500000 0.500000" class="servo" />
+      <geom name="torso_box" type="box" pos="-0.001695 0.000832 -0.010889" size="0.152946 0.063097 0.029649" class="collision" />
+      <geom name="battery" type="box" pos="-0.001695 0.000832 -0.010889" size="0.045000 0.030000 0.015000" contype="0" conaffinity="0" group="4" mass="0.22" rgba="0.1 0.1 0.1 0" />
+      <body name="shoulder_fr" pos="0.077860 0.042565 0.002038" quat="0.707107 0.000000 0.000000 0.707107">
+        <joint name="fr_hip" axis="0 1 0" range="-1.5708 1.5708" />
+        <geom name="shoulder_fr_vis_0" mesh="SHOULDER_v16_1" pos="-0.009100 0.002491 0.010260" quat="0.497957 0.497957 0.502035 -0.502035" class="visual" />
+        <geom name="shoulder_fr_vis_1" mesh="Tower_Pro_MG996_v5_1" pos="-0.020338 -0.055285 0.000063" quat="0.502035 -0.502035 -0.497957 -0.497956" class="servo" />
+        <geom name="fr_shoulder_col" type="sphere" size="0.024" pos="0.006507 -0.033363 0.000331" class="collision" />
+        <body name="thigh_fr" pos="0.023660 -0.038290 -0.000300">
+          <joint name="fr_thigh" axis="1 0 0" range="-1.5708 1.5708" />
+          <geom name="thigh_fr_vis_0" mesh="robot_leg1_v13_1" pos="0.018820 -0.006072 0.002945" quat="-0.003506 0.002084 0.859578 0.510988" class="visual" />
+          <geom name="thigh_fr_vis_1" mesh="Tower_Pro_MG996_v5_3" pos="0.017958 0.067868 -0.035469" quat="0.606340 0.358844 0.363802 -0.609287" class="servo" />
+          <geom name="fr_thigh_col" type="capsule" size="0.0180" fromto="0.034911 0.058827 -0.032175 0.016960 0.009892 -0.005363" class="collision" />
+          <body name="shank_fr" pos="0.074750 0.053200 -0.028390">
+            <joint name="fr_knee" axis="1 0 0" range="-1.5708 1.5708" />
+            <geom name="shank_fr_vis_0" mesh="robot_knee_v11_2" pos="-0.011690 -0.036699 -0.069091" quat="-0.001161 0.003910 0.284601 0.958637" class="visual" />
+            <geom name="fr_shank_col" type="capsule" size="0.0100" fromto="-0.002925 -0.023289 -0.026701 -0.006364 0.009457 0.010884" class="collision" />
+            <geom name="fr_foot" type="sphere" size="0.008" pos="-0.002564 -0.049787 -0.057232" material="accent" class="collision" />
+          </body>
+        </body>
+      </body>
+      <body name="shoulder_fl" pos="0.077700 -0.042655 0.000798" quat="0.707107 0.000000 0.000000 0.707107">
+        <joint name="fl_hip" axis="0 1 0" range="-1.5708 1.5708" />
+        <geom name="shoulder_fl_vis_0" mesh="SHOULDER_v16_3" pos="0.009254 0.000995 -0.009307" quat="0.493252 0.493252 -0.506658 0.506659" class="visual" />
+        <geom name="shoulder_fl_vis_1" mesh="Tower_Pro_MG996_v5_8" pos="0.020803 -0.056437 0.003184" quat="0.506659 -0.506658 0.493252 0.493252" class="servo" />
+        <geom name="fl_shoulder_col" type="sphere" size="0.024" pos="-0.006621 -0.034824 0.000266" class="collision" />
+        <body name="thigh_fl" pos="-0.023180 -0.039440 0.002000">
+          <joint name="fl_thigh" axis="1 0 0" range="-1.5708 1.5708" />
+          <geom name="thigh_fl_vis_0" mesh="robot_leg1_v13_3" pos="-0.024342 -0.005717 0.002852" quat="-0.436187 0.899756 0.005848 0.012064" class="visual" />
+          <geom name="thigh_fl_vis_1" mesh="Tower_Pro_MG996_v5_9" pos="-0.024097 0.059821 -0.049264" quat="0.632088 0.299901 -0.316961 0.640359" class="servo" />
+          <geom name="fl_thigh_col" type="capsule" size="0.0180" fromto="-0.039672 0.052082 -0.043396 -0.022197 0.008225 -0.008494" class="collision" />
+          <body name="shank_fl" pos="-0.094040 0.048390 -0.041310">
+            <joint name="fl_knee" axis="1 0 0" range="-1.5708 1.5708" />
+            <geom name="shank_fl_vis_0" mesh="robot_knee_v11_4" pos="0.005534 -0.047857 -0.061862" quat="0.004892 -0.012482 0.364826 0.930979" class="visual" />
+            <geom name="fl_shank_col" type="capsule" size="0.0100" fromto="0.008300 0.011155 0.009305 0.012889 -0.027466 -0.022067" class="collision" />
+            <geom name="fl_foot" type="sphere" size="0.008" pos="0.014458 -0.058733 -0.047638" material="accent" class="collision" />
+          </body>
+        </body>
+      </body>
+      <body name="shoulder_br" pos="-0.077890 0.042535 -0.001972" quat="0.707107 0.000000 0.000000 0.707107">
+        <joint name="br_hip" axis="0 1 0" range="-1.5708 1.5708" />
+        <geom name="shoulder_br_vis_0" mesh="SHOULDER_v16_2" pos="-0.008978 -0.001003 -0.009577" quat="-0.499360 0.499360 0.500639 0.500639" class="visual" />
+        <geom name="shoulder_br_vis_1" mesh="Tower_Pro_MG996_v5_4" pos="-0.017806 0.056039 0.001573" quat="0.500639 0.500639 0.499360 -0.499360" class="servo" />
+        <geom name="br_shoulder_col" type="sphere" size="0.024" pos="0.006926 0.034776 0.000356" class="collision" />
+        <body name="thigh_br" pos="0.043900 0.041620 0.001610">
+          <joint name="br_thigh" axis="1 0 0" range="-1.5708 1.5708" />
+          <geom name="thigh_br_vis_0" mesh="robot_leg1_v13_2" pos="0.000038 -0.006883 0.005082" quat="0.001153 -0.000553 0.901897 0.431948" class="visual" />
+          <geom name="thigh_br_vis_1" mesh="Tower_Pro_MG996_v5_6" pos="-0.004806 0.057373 -0.045021" quat="0.638129 0.306249 0.304618 -0.637347" class="servo" />
+          <geom name="br_thigh_col" type="capsule" size="0.0180" fromto="0.016052 0.050626 -0.040836 -0.001605 0.007313 -0.005932" class="collision" />
+          <body name="shank_br" pos="0.059390 0.043800 -0.036550">
+            <joint name="br_knee" axis="1 0 0" range="-1.5708 1.5708" />
+            <geom name="shank_br_vis_0" mesh="robot_knee_v11_3" pos="-0.010971 -0.048570 -0.061455" quat="0.000474 -0.001188 0.370241 0.928935" class="visual" />
+            <geom name="br_shank_col" type="capsule" size="0.0100" fromto="-0.002653 -0.027722 -0.022088 -0.006478 0.011261 0.008936" class="collision" />
+            <geom name="br_foot" type="sphere" size="0.008" pos="-0.001978 -0.059291 -0.047334" material="accent" class="collision" />
+          </body>
+        </body>
+      </body>
+      <body name="shoulder_bl" pos="-0.077670 -0.042445 -0.000862" quat="0.707107 0.000000 0.000000 0.707107">
+        <joint name="bl_hip" axis="0 1 0" range="-1.5708 1.5708" />
+        <geom name="shoulder_bl_vis_0" mesh="SHOULDER_v16_4" pos="0.009047 -0.001004 0.009506" quat="0.498813 -0.498813 0.501184 0.501185" class="visual" />
+        <geom name="shoulder_bl_vis_1" mesh="Tower_Pro_MG996_v5_11" pos="0.018821 0.057278 -0.001745" quat="0.501185 0.501184 -0.498813 0.498813" class="servo" />
+        <geom name="bl_shoulder_col" type="sphere" size="0.024" pos="-0.006823 0.034903 -0.000314" class="collision" />
+        <body name="thigh_bl" pos="-0.043010 0.042290 -0.000370">
+          <joint name="bl_thigh" axis="1 0 0" range="-1.5708 1.5708" />
+          <geom name="thigh_bl_vis_0" mesh="robot_leg1_v13_4" pos="-0.000033 -0.007325 0.004421" quat="0.509607 -0.860404 0.001209 0.002040" class="visual" />
+          <geom name="thigh_bl_vis_1" mesh="Tower_Pro_MG996_v5_12" pos="0.003386 0.062906 -0.036480" quat="0.609252 0.361789 -0.358903 0.607543" class="servo" />
+          <geom name="bl_thigh_col" type="capsule" size="0.0180" fromto="-0.016223 0.057086 -0.031151 0.001610 0.008255 -0.004495" class="collision" />
+          <body name="shank_bl" pos="-0.073600 0.047400 -0.027960">
+            <joint name="bl_knee" axis="1 0 0" range="-1.5708 1.5708" />
+            <geom name="shank_bl_vis_0" mesh="robot_knee_v11_5" pos="0.003549 -0.036753 -0.069173" quat="-0.000676 0.002273 0.284971 0.958533" class="visual" />
+            <geom name="bl_shank_col" type="capsule" size="0.0100" fromto="0.012169 -0.023311 -0.026764 0.008602 0.009465 0.010785" class="collision" />
+            <geom name="bl_foot" type="sphere" size="0.008" pos="0.012908 -0.049825 -0.057266" material="accent" class="collision" />
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <position name="fr_hip" joint="fr_hip" class="medo" />
+    <position name="fr_thigh" joint="fr_thigh" class="medo" />
+    <position name="fr_knee" joint="fr_knee" class="medo" />
+    <position name="fl_hip" joint="fl_hip" class="medo" />
+    <position name="fl_thigh" joint="fl_thigh" class="medo" />
+    <position name="fl_knee" joint="fl_knee" class="medo" />
+    <position name="br_hip" joint="br_hip" class="medo" />
+    <position name="br_thigh" joint="br_thigh" class="medo" />
+    <position name="br_knee" joint="br_knee" class="medo" />
+    <position name="bl_hip" joint="bl_hip" class="medo" />
+    <position name="bl_thigh" joint="bl_thigh" class="medo" />
+    <position name="bl_knee" joint="bl_knee" class="medo" />
+  </actuator>
+  <sensor>
+    <gyro name="imu_gyro" site="imu" />
+    <accelerometer name="imu_acc" site="imu" />
+  </sensor>
+  <keyframe>
+    <key name="home" qpos="0.0000 0.0000 0.1136 1.0000 0.0000 0.0000 0.0000 0.0000 -0.0125 0.5297 0.0000 0.1758 0.5016 0.0000 -0.5719 0.6148 0.0000 -0.7281 0.5875" ctrl="0.0000 -0.0125 0.5297 0.0000 0.1758 0.5016 0.0000 -0.5719 0.6148 0.0000 -0.7281 0.5875" />
+  </keyframe>
+<asset><hfield name="terrain" nrow="192" ncol="192" size="3.0 3.0 0.4 0.1"/></asset><option><flag nativeccd="enable"/></option></mujoco>
