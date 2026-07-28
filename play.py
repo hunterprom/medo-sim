@@ -108,6 +108,13 @@ def main():
                 pass
 
     with mujoco.viewer.launch_passive(env.model, env.data, key_callback=on_key) as v:
+        # chase cam: keep the dog centered (mouse orbit/zoom still works).
+        # Without it the free camera stays at the spawn while the dog walks
+        # away, and distant grazing-angle geometry reads as clipping.
+        v.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING
+        v.cam.trackbodyid = env.torso_body
+        v.cam.distance = 0.9
+        v.cam.elevation = -18
         while v.is_running():
             step_start = time.time()
             if reset_flag[0]:

@@ -437,11 +437,11 @@ class MedoEnv:
             self.model.geom_pos[self._terrain_gid][2] = 0.0
             self._spawn_z = float(h[c.terrain_res // 2, c.terrain_res // 2])
         else:
-            # tuck the flat hfield just under the floor plane: coplanar
-            # surfaces z-fight into a mottled mess
+            # bury the unused hfield: anywhere near the floor plane it
+            # z-fights into mottled speckles at rendering distance
             self.model.hfield_data[:] = 0.0
             self.model.hfield_size[self.terrain_hid][2] = 0.05
-            self.model.geom_pos[self._terrain_gid][2] = -0.02
+            self.model.geom_pos[self._terrain_gid][2] = -5.0
             self._spawn_z = 0.0
         if kind == "slope":
             boxes = slope_boxes(self.difficulty, self.rng)
