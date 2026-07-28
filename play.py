@@ -48,6 +48,11 @@ def main():
     cfg = EnvConfig(model_path=args.model, randomize=False, obs_noise=False,
                     terrain=args.terrain, terrain_diff_up=0.0,
                     terrain_diff_down=0.0, **layout_for_n_obs(n_in))
+    if args.terrain:
+        # finer physics for viewing: same 50 Hz control, half the impact
+        # overshoot when limbs strike terrain edges
+        cfg.sim_timestep = 0.0025
+        cfg.decimation = 8
     if args.kind:
         cfg.terrain_kinds = (args.kind,)
         cfg.terrain_flat_prob = 0.0

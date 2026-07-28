@@ -129,6 +129,10 @@ class EnvConfig:
     # sink by up to the sphere radius (feet visibly clip into slopes).
     # The hfield is kept only for rough ground, where bumps mask it.
     terrain_box_pool: int = 32
+    # physics substep for the terrain model variant; the viewer runs 2.5 ms
+    # with decimation 8 (same 50 Hz control) to halve the transient impact
+    # penetration visible when limbs strike step risers
+    sim_timestep: float = 0.005
     # adaptive curriculum per env: difficulty in [0, 1], nudged up when an
     # episode survives and covers >half its commanded distance, down on falls
     terrain_diff_up: float = 0.05
@@ -349,6 +353,9 @@ class MedoEnv:
                  'castshadow="false"/>')
         xml = xml.replace("<worldbody>", "<worldbody>" + geom, 1)
         xml = xml.replace("</mujoco>", asset + "</mujoco>")
+        if self.cfg.sim_timestep != 0.005:
+            xml = xml.replace('timestep="0.005"',
+                              f'timestep="{self.cfg.sim_timestep}"')
         # light matte ground for the terrain world: the default dark
         # reflective checker reads as a void at walking-height camera
         # angles, making planted legs look sunken
