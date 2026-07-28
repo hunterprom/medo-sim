@@ -113,9 +113,14 @@ def main():
         # away, and distant grazing-angle geometry reads as clipping.
         v.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING
         v.cam.trackbodyid = env.torso_body
-        v.cam.distance = 0.9
-        v.cam.elevation = -18
+        frames = 0
         while v.is_running():
+            # the viewer re-derives its own camera on startup: assert ours
+            # for the first couple of seconds, then leave the mouse in charge
+            if frames < 100:
+                v.cam.distance = 0.9
+                v.cam.elevation = -18
+            frames += 1
             step_start = time.time()
             if reset_flag[0]:
                 obs = env.reset()

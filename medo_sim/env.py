@@ -342,7 +342,8 @@ class MedoEnv:
         # surfaces otherwise render near-black and leg shadows read as the
         # legs continuing underground
         geom += ('<light directional="true" pos="1 1 3" dir="-0.2 -0.2 -1" '
-                 'diffuse="0.55 0.55 0.55" specular="0.1 0.1 0.1"/>')
+                 'diffuse="0.55 0.55 0.55" specular="0.1 0.1 0.1" '
+                 'castshadow="false"/>')
         xml = xml.replace("<worldbody>", "<worldbody>" + geom, 1)
         xml = xml.replace("</mujoco>", asset + "</mujoco>")
         # light matte ground for the terrain world: the default dark
@@ -351,6 +352,12 @@ class MedoEnv:
         xml = xml.replace('rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"',
                           'rgb1="0.56 0.53 0.46" rgb2="0.48 0.46 0.41"')
         xml = xml.replace('reflectance="0.1"', 'reflectance="0.0"')
+        # no shadow maps in the terrain world: stretched over a ~20 m extent
+        # they render as ragged dark blobs under the robot that read as
+        # holes in the ground ("the robot is sunk"), at any resolution
+        xml = xml.replace('<light pos="0 0 1.5" dir="0 0 -1" directional="true" />',
+                          '<light pos="0 0 1.5" dir="0 0 -1" directional="true" '
+                          'castshadow="false" />')
         tmp = dst + ".tmp"
         with open(tmp, "w") as f:
             f.write(xml)
