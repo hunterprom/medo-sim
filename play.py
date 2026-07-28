@@ -123,8 +123,11 @@ def main():
             # the viewer re-derives its own camera on startup: assert ours
             # for the first couple of seconds, then leave the mouse in charge
             if frames < 100:
-                v.cam.distance = 0.9
-                v.cam.elevation = -18
+                # steep enough that step edges cannot occlude the legs
+                # (occlusion at leg-height angles reads as the robot being
+                # sunk inside the staircase)
+                v.cam.distance = 1.1
+                v.cam.elevation = -32
             frames += 1
             step_start = time.time()
             if reset_flag[0]:
