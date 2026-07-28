@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import dataclasses
 import os
+import re
 
 import mujoco
 import numpy as np
@@ -376,6 +377,17 @@ class MedoEnv:
             '<geom name="floor" type="plane" size="0 0 0.05" '
             'material="groundplane"',
             '<geom name="floor" type="plane" size="0 0 0.05" rgba="0 0 0 0"')
+        # cover the knee-drive servo housings: they bulge past the thigh
+        # capsule and passed visibly through stair risers. Named *_thigh_*
+        # so they classify as penalized limb contact, not terminal.
+        def _servo_col(mm):
+            leg, pos = mm.group(1), mm.group(2)
+            return (mm.group(0)
+                    + f'<geom name="{leg}_thigh_servo_col" class="collision" '
+                      f'type="sphere" size="0.022" pos="{pos}"/>')
+        xml = re.sub(
+            r'<geom name="thigh_(\w+)_vis_1"[^>]*?pos="([^"]+)"[^>]*/>',
+            _servo_col, xml)
         # light matte ground for the terrain world: the default dark
         # reflective checker reads as a void at walking-height camera
         # angles, making planted legs look sunken
