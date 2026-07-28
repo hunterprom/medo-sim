@@ -37,8 +37,7 @@ def main():
                    metavar=("VX", "VY", "WZ"),
                    help="start with this command active (keys still adjust)")
     p.add_argument("--terrain", action="store_true",
-                   help="procedural terrain world (note: after an in-viewer "
-                        "reset the regenerated terrain may render stale)")
+                   help="procedural terrain world (regenerates on every reset)")
     p.add_argument("--difficulty", type=float, default=0.5,
                    help="terrain difficulty 0..1 (with --terrain)")
     args = p.parse_args()
@@ -93,17 +92,29 @@ def main():
     obs = env.reset()
     env.command = command.copy()
 
+    def refresh_terrain(v):
+        # every reset regenerates the heightfield in the physics; without
+        # re-uploading it, the dog walks on invisible new terrain while the
+        # display still shows the old one
+        if args.terrain and env.terrain_hid >= 0 and hasattr(v, "update_hfield"):
+            try:
+                v.update_hfield(env.terrain_hid)
+            except Exception:
+                pass
+
     with mujoco.viewer.launch_passive(env.model, env.data, key_callback=on_key) as v:
         while v.is_running():
             step_start = time.time()
             if reset_flag[0]:
                 obs = env.reset()
                 reset_flag[0] = False
+                refresh_terrain(v)
             env.command = command.copy()
             action = agent.act_deterministic(obs)
             obs, _, terminated, _, _ = env.step(action)
             if terminated:
                 obs = env.reset()
+                refresh_terrain(v)
             v.sync()
             # real-time pacing
             leftover = env.dt - (time.time() - step_start)
