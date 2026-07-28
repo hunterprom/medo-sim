@@ -25,7 +25,7 @@ import os
 import mujoco
 import numpy as np
 
-from medo_sim.terrain import make_heights, slope_boxes, stair_boxes
+from medo_sim.terrain import rough_boxes, slope_boxes, stair_boxes
 
 _ASSETS = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets"
@@ -434,23 +434,17 @@ class MedoEnv:
             kind = "flat"
         else:
             kind = str(self.rng.choice(list(c.terrain_kinds)))
-        # hfield carries only rough ground; slopes/stairs use exact boxes
+        # every kind is boxes now: sphere-vs-hfield contact lets feet sink
+        # into bumps by up to their radius (the clipping in the user's
+        # screenshot). The hfield stays buried for good.
+        self.model.hfield_data[:] = 0.0
+        self.model.hfield_size[self.terrain_hid][2] = 0.05
+        self.model.geom_pos[self._terrain_gid][2] = -5.0
+        self._spawn_z = 0.0
         if kind == "rough":
-            h = make_heights(kind, self.difficulty, c.terrain_res,
-                             c.terrain_extent, self.rng)
-            zmax = max(float(h.max()), 0.05)
-            self.model.hfield_data[:] = (h / zmax).ravel()
-            self.model.hfield_size[self.terrain_hid][2] = zmax
-            self.model.geom_pos[self._terrain_gid][2] = 0.0
-            self._spawn_z = float(h[c.terrain_res // 2, c.terrain_res // 2])
-        else:
-            # bury the unused hfield: anywhere near the floor plane it
-            # z-fights into mottled speckles at rendering distance
-            self.model.hfield_data[:] = 0.0
-            self.model.hfield_size[self.terrain_hid][2] = 0.05
-            self.model.geom_pos[self._terrain_gid][2] = -5.0
-            self._spawn_z = 0.0
-        if kind == "slope":
+            boxes = rough_boxes(self.difficulty, self.rng, c.terrain_box_pool)
+            self._spawn_z = 0.012
+        elif kind == "slope":
             boxes = slope_boxes(self.difficulty, self.rng)
             # raise the ramp so the spawn sits mid-incline: uphill continues,
             # downhill runs ~2 m before meeting the floor -- both directions
