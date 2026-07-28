@@ -329,7 +329,8 @@ class MedoEnv:
         # stiff contact (solref 0.01) + priority so it wins the combination
         # with the feet: default softness let feet sink ~1-2 cm into slopes,
         # which reads as the robot clipping into the terrain
-        common = ('friction="1.0 0.005 0.0001" solref="0.01 1" priority="1"')
+        common = ('friction="1.0 0.005 0.0001" solref="0.01 1" priority="1" '
+                  'rgba="0.68 0.66 0.60 1"')
         geom = (f'<geom name="terrain" type="hfield" hfield="terrain" '
                 f'pos="0 0 0" {common}/>')
         # parked box pool for exact slopes/stairs; repositioned per episode
@@ -337,8 +338,19 @@ class MedoEnv:
             f'<geom name="tbox{i:02d}" type="box" size="0.1 0.1 0.1" '
             f'pos="0 0 -10" {common}/>'
             for i in range(self.cfg.terrain_box_pool))
+        # extra fill light: at walking-height camera angles the tilted
+        # surfaces otherwise render near-black and leg shadows read as the
+        # legs continuing underground
+        geom += ('<light directional="true" pos="1 1 3" dir="-0.2 -0.2 -1" '
+                 'diffuse="0.55 0.55 0.55" specular="0.1 0.1 0.1"/>')
         xml = xml.replace("<worldbody>", "<worldbody>" + geom, 1)
         xml = xml.replace("</mujoco>", asset + "</mujoco>")
+        # light matte ground for the terrain world: the default dark
+        # reflective checker reads as a void at walking-height camera
+        # angles, making planted legs look sunken
+        xml = xml.replace('rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"',
+                          'rgb1="0.56 0.53 0.46" rgb2="0.48 0.46 0.41"')
+        xml = xml.replace('reflectance="0.1"', 'reflectance="0.0"')
         tmp = dst + ".tmp"
         with open(tmp, "w") as f:
             f.write(xml)
