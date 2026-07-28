@@ -315,8 +315,12 @@ class MedoEnv:
             xml = f.read()
         asset = (f'<asset><hfield name="terrain" nrow="{n}" ncol="{n}" '
                  f'size="{ext / 2} {ext / 2} 0.4 0.1"/></asset>')
+        # stiff contact (solref 0.01) + priority so it wins the combination
+        # with the feet: default softness let feet sink ~1-2 cm into slopes,
+        # which reads as the robot clipping into the terrain
         geom = ('<geom name="terrain" type="hfield" hfield="terrain" '
-                'pos="0 0 0" friction="1.0 0.005 0.0001"/>')
+                'pos="0 0 0" friction="1.0 0.005 0.0001" '
+                'solref="0.01 1" priority="1"/>')
         xml = xml.replace("<worldbody>", "<worldbody>" + geom, 1)
         xml = xml.replace("</mujoco>", asset + "</mujoco>")
         tmp = dst + ".tmp"
