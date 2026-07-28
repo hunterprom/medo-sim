@@ -351,6 +351,8 @@ class MedoEnv:
         # angles, making planted legs look sunken
         xml = xml.replace('rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"',
                           'rgb1="0.56 0.53 0.46" rgb2="0.48 0.46 0.41"')
+        # the white edge marks moire into speckle bands at grazing angles
+        xml = xml.replace('mark="edge"', 'mark="none"')
         xml = xml.replace('reflectance="0.1"', 'reflectance="0.0"')
         # no shadow maps in the terrain world: stretched over a ~20 m extent
         # they render as ragged dark blobs under the robot that read as

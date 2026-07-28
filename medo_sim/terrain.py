@@ -119,7 +119,8 @@ def stair_boxes(difficulty: float, rng: np.random.Generator,
     for k in range(1, max_steps_per_side + 1):
         x = SPAWN_R + (k - 0.5) * run
         half_h = k * rise / 2
-        size = np.array([run / 2, 3.0, half_h])
+        # slight x-overlap: exactly touching boxes render hairline seams
+        size = np.array([run / 2 + 0.003, 3.0, half_h])
         for sx in (+1, -1):
             boxes.append((np.array([sx * x, 0.0, half_h]), size.copy(),
                           np.array([1.0, 0.0, 0.0, 0.0])))
