@@ -40,12 +40,17 @@ def main():
                    help="procedural terrain world (regenerates on every reset)")
     p.add_argument("--difficulty", type=float, default=0.5,
                    help="terrain difficulty 0..1 (with --terrain)")
+    p.add_argument("--kind", choices=["rough", "slope", "stairs"], default=None,
+                   help="pin the terrain type instead of rolling randomly")
     args = p.parse_args()
 
     n_in = PPO.peek_n_obs(args.checkpoint)
     cfg = EnvConfig(model_path=args.model, randomize=False, obs_noise=False,
                     terrain=args.terrain, terrain_diff_up=0.0,
                     terrain_diff_down=0.0, **layout_for_n_obs(n_in))
+    if args.kind:
+        cfg.terrain_kinds = (args.kind,)
+        cfg.terrain_flat_prob = 0.0
     env = MedoEnv(cfg, seed=0)
     env.difficulty = float(np.clip(args.difficulty, 0.0, 1.0))
     agent = PPO(env.n_obs, env.nu, device=args.device)
