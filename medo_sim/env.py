@@ -121,7 +121,8 @@ class EnvConfig:
     terrain: bool = False
     terrain_extent: float = 6.0      # hfield side length, meters
     terrain_res: int = 192           # cells per side (~3.1 cm cells)
-    terrain_kinds: tuple = ("rough", "slope", "stairs")
+    # stairs listed twice: hardest skill gets double the episode share
+    terrain_kinds: tuple = ("rough", "slope", "stairs", "stairs")
     terrain_flat_prob: float = 0.2   # fraction of episodes on plain ground
     # slopes/stairs are built from a pool of BOX geoms: box contacts are
     # analytic and exact, while sphere-vs-hfield contacts on tilted prisms
@@ -218,7 +219,9 @@ class MedoEnv:
 
         self.torso_body = self._find_torso_body()
         self.floor_geom = self._find_floor_geom()
-        self.difficulty = 0.0
+        # difficulty is PER KIND: a shared scalar let rough/slope mastery
+        # drag stairs to 7 cm risers long before 3 cm was climbable
+        self.difficulties: dict[str, float] = {}
         self.terrain_kind = "flat"
         self._spawn_z = 0.0
         self._track_progress = 0.0
@@ -430,6 +433,16 @@ class MedoEnv:
 
     SLOPE_SPAWN_H = 0.3   # spawn height on box slopes: leaves a downhill ramp
 
+    @property
+    def difficulty(self) -> float:
+        return (float(np.mean(list(self.difficulties.values())))
+                if self.difficulties else 0.0)
+
+    @difficulty.setter
+    def difficulty(self, v: float):
+        for k in set(self.cfg.terrain_kinds) | {"flat"}:
+            self.difficulties[k] = float(v)
+
     def _regen_terrain(self):
         c = self.cfg
         if self.rng.random() < c.terrain_flat_prob:
@@ -443,11 +456,12 @@ class MedoEnv:
         self.model.hfield_size[self.terrain_hid][2] = 0.05
         self.model.geom_pos[self._terrain_gid][2] = -5.0
         self._spawn_z = 0.0
+        d = self.difficulties.get(kind, 0.0)
         if kind == "rough":
-            boxes = rough_boxes(self.difficulty, self.rng, c.terrain_box_pool)
+            boxes = rough_boxes(d, self.rng, c.terrain_box_pool)
             self._spawn_z = 0.012
         elif kind == "slope":
-            boxes = slope_boxes(self.difficulty, self.rng)
+            boxes = slope_boxes(d, self.rng)
             # raise the ramp so the spawn sits mid-incline: uphill continues,
             # downhill runs ~2 m before meeting the floor -- both directions
             # get trained
@@ -455,7 +469,7 @@ class MedoEnv:
                       size, quat) for pos, size, quat in boxes]
             self._spawn_z = self.SLOPE_SPAWN_H + 0.02
         elif kind == "stairs":
-            boxes = stair_boxes(self.difficulty, self.rng,
+            boxes = stair_boxes(d, self.rng,
                                 max_steps_per_side=c.terrain_box_pool // 2)
         else:
             boxes = []
@@ -476,16 +490,17 @@ class MedoEnv:
     def reset(self) -> np.ndarray:
         c = self.cfg
         if c.terrain:
-            # adaptive curriculum, judged on the episode that just ended
+            # adaptive curriculum, judged on the episode that just ended and
+            # applied only to that episode's terrain kind
             if self.step_count > 0:
                 frac = (self._track_progress / self._cmd_dist
                         if self._cmd_dist > 0.05 else 1.0)
+                k = self.terrain_kind
+                d = self.difficulties.get(k, 0.0)
                 if self._ep_fell:
-                    self.difficulty = max(0.0,
-                                          self.difficulty - c.terrain_diff_down)
+                    self.difficulties[k] = max(0.0, d - c.terrain_diff_down)
                 elif frac > 0.5:
-                    self.difficulty = min(1.0,
-                                          self.difficulty + c.terrain_diff_up)
+                    self.difficulties[k] = min(1.0, d + c.terrain_diff_up)
             self._regen_terrain()
         if c.randomize:
             self.model.geom_friction[self.floor_geom, 0] = self.rng.uniform(*c.friction_range)
