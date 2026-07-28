@@ -351,11 +351,31 @@ class MedoEnv:
         geom += ('<light directional="true" pos="1 1 3" dir="-0.2 -0.2 -1" '
                  'diffuse="0.55 0.55 0.55" specular="0.1 0.1 0.1" '
                  'castshadow="false"/>')
+        # visible ground = a plain matte slab; the checker TEXTURE was the
+        # blotch source all along -- unmipped 300px checkers alias into
+        # organic shimmering patches at grazing angles. The invisible plane
+        # stays as the collider.
+        # slab top 2 mm BELOW the (invisible) collision plane: exactly
+        # coplanar surfaces z-fight, and the fight pixels exposed the buried
+        # hfield as white blotches
+        geom += ('<geom name="groundslab" type="box" size="12 12 0.05" '
+                 'pos="0 0 -0.052" rgba="0.52 0.50 0.44 1" '
+                 'contype="0" conaffinity="0"/>')
+        geom_stats = '<statistic extent="4" center="0 0 0.15"/>'
         xml = xml.replace("<worldbody>", "<worldbody>" + geom, 1)
-        xml = xml.replace("</mujoco>", asset + "</mujoco>")
+        # pin scene statistics: the 24 m ground slab otherwise inflates the
+        # auto extent, wrecking depth precision (grazing-angle speckle) and
+        # near-plane clipping
+        xml = xml.replace("</mujoco>",
+                          geom_stats + asset + "</mujoco>")
         if self.cfg.sim_timestep != 0.005:
             xml = xml.replace('timestep="0.005"',
                               f'timestep="{self.cfg.sim_timestep}"')
+        # hide the plane (alpha 0) -- collision only; the slab is the visual
+        xml = xml.replace(
+            '<geom name="floor" type="plane" size="0 0 0.05" '
+            'material="groundplane"',
+            '<geom name="floor" type="plane" size="0 0 0.05" rgba="0 0 0 0"')
         # light matte ground for the terrain world: the default dark
         # reflective checker reads as a void at walking-height camera
         # angles, making planted legs look sunken
@@ -370,6 +390,11 @@ class MedoEnv:
         xml = xml.replace('<light pos="0 0 1.5" dir="0 0 -1" directional="true" />',
                           '<light pos="0 0 1.5" dir="0 0 -1" directional="true" '
                           'castshadow="false" />')
+        # tighter near plane: depth precision at grazing angles could not
+        # separate the floor plane from thin step tops metres away -- the
+        # plane bled through as flickering blotches
+        xml = xml.replace('<quality shadowsize="4096" />',
+                          '<quality shadowsize="4096" /><map znear="0.03" />')
         tmp = dst + ".tmp"
         with open(tmp, "w") as f:
             f.write(xml)
@@ -458,10 +483,11 @@ class MedoEnv:
             kind = str(self.rng.choice(list(c.terrain_kinds)))
         # every kind is boxes now: sphere-vs-hfield contact lets feet sink
         # into bumps by up to their radius (the clipping in the user's
-        # screenshot). The hfield stays buried for good.
+        # screenshot). The hfield stays buried -- just under the floor, so
+        # it does not bloat the scene bounds that set the depth range
         self.model.hfield_data[:] = 0.0
         self.model.hfield_size[self.terrain_hid][2] = 0.05
-        self.model.geom_pos[self._terrain_gid][2] = -5.0
+        self.model.geom_pos[self._terrain_gid][2] = -0.45
         self._spawn_z = 0.0
         d = self.difficulties.get(kind, 0.0)
         if kind == "rough":
