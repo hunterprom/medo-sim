@@ -537,8 +537,11 @@ class MedoEnv:
                 # absolute progress counts EVEN IF the episode ends in a
                 # fall: a stairs climber tops out and then walks off the far
                 # edge of the finite world -- that fall is not a skill
-                # failure, and gating on it pinned stairs difficulty at zero
-                if self._track_progress > 0.8:
+                # failure, and gating on it pinned stairs difficulty at zero.
+                # Bar at 1.5 m: the flat spawn strip alone is 0.7 m, so a
+                # lower bar promoted difficulty for crossing the strip plus
+                # a single step (observed: difficulty 1.0, still can't climb)
+                if self._track_progress > 1.5:
                     self.difficulties[k] = min(1.0, d + c.terrain_diff_up)
                 elif self._ep_fell:
                     self.difficulties[k] = max(0.0, d - c.terrain_diff_down)
