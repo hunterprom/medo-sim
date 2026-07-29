@@ -718,13 +718,16 @@ class MedoEnv:
             comps["ang_progress"] = (c.rew_ang_progress
                                      * float(np.clip(projw, -n_wz, n_wz)) / n_wz)
 
+        # on stairs, the stance/symmetry form penalties fight the deep
+        # crouch-and-lunge motions tall steps require: relax them there
+        form = 0.3 if self.terrain_kind == "stairs" else 1.0
         if c.rew_pose or c.rew_hip_pose:
             dq = self.data.qpos[7:] - self.default_joint_pos
             if c.rew_pose:
-                comps["pose"] = c.rew_pose * float(dq @ dq)
+                comps["pose"] = form * c.rew_pose * float(dq @ dq)
             if c.rew_hip_pose:
                 hq = dq[self._hip_idx]
-                comps["hip_pose"] = c.rew_hip_pose * float(hq @ hq)
+                comps["hip_pose"] = form * c.rew_hip_pose * float(hq @ hq)
         if c.rew_heading or c.rew_lateral:
             if c.rew_heading:
                 err = (self.yaw - self.heading_ref + np.pi) \
@@ -744,7 +747,8 @@ class MedoEnv:
             m = np.array([1.0, -1.0, 1.0])
             e1 = off[0] - off[3] * m
             e2 = off[1] - off[2] * m
-            comps["symmetry"] = c.rew_symmetry * float(e1 @ e1 + e2 @ e2)
+            comps["symmetry"] = (form * c.rew_symmetry
+                                 * float(e1 @ e1 + e2 @ e2))
         self.air_time += self.dt
         self.air_time[contact] = 0.0
         self.prev_contact = contact
