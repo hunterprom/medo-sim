@@ -365,6 +365,40 @@ class MedoEnv:
         xml = re.sub(
             r'<geom name="thigh_(\w+)_vis_1"[^>]*?pos="([^"]+)"[^>]*/>',
             _servo_col, xml)
+        xml = xml.replace('type="capsule" size="0.0100"',
+                          'type="capsule" size="0.0140"')
+        # ankle bridge: the shank capsule was fitted EXCLUDING the toe
+        # region (so it clears the floor), leaving ~3 cm of lower shin with
+        # only the 8 mm toe ball -- exactly the part that rides stair
+        # nosings ~2 cm deep. Bridge it from capsule end to toe ball.
+        for _leg in ("fr", "fl", "br", "bl"):
+            mfrom = re.search(
+                rf'name="{_leg}_shank_col"[^>]*fromto="([^ ]+ [^ ]+ [^ ]+)',
+                xml)
+            mfoot = re.search(rf'name="{_leg}_foot"[^>]*pos="([^"]+)"', xml)
+            if mfrom and mfoot:
+                # radius 7 mm: must stay above the 8 mm toe ball's bottom so
+                # it never touches flat ground; named *_shank_* to classify
+                # as penalized limb contact, not terminal
+                ankle = (f'<geom name="{_leg}_shank_ankle_col" '
+                         f'class="collision" type="capsule" size="0.007" '
+                         f'fromto="{mfrom.group(1)} {mfoot.group(1)}"/>')
+                xml = xml.replace(f'<geom name="{_leg}_foot"',
+                                  ankle + f'<geom name="{_leg}_foot"', 1)
+        def _knee_col(mm):
+            leg = mm.group(1)
+            return (mm.group(0)
+                    + f'<geom name="{leg}_shank_knee_col" class="collision" '
+                      f'type="sphere" size="0.018" pos="0 0 0"/>')
+        xml = re.sub(r'<geom name="(\w+)_shank_col"[^>]*/>', _knee_col, xml)
+        # safe floor restyle (texture only, no geometry games): light matte
+        # ground, giant checkers, no edge marks -- the stock dark checker
+        # moires into blue speckle blotches at grazing angles
+        xml = xml.replace('rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"',
+                          'rgb1="0.55 0.52 0.46" rgb2="0.47 0.45 0.40"')
+        xml = xml.replace('mark="edge"', 'mark="none"')
+        xml = xml.replace('reflectance="0.1"', 'reflectance="0.0"')
+        xml = xml.replace('texrepeat="5 5"', 'texrepeat="1 1"')
         tmp = dst + ".tmp"
         with open(tmp, "w") as f:
             f.write(xml)
