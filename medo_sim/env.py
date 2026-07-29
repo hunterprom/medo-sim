@@ -351,6 +351,15 @@ class MedoEnv:
             for i in range(self.cfg.terrain_box_pool))
         xml = xml.replace("<worldbody>", "<worldbody>" + geom, 1)
         xml = xml.replace("</mujoco>", asset + "</mujoco>")
+        # CRITICAL: the mid-phase BVH is baked at compile time (with the box
+        # pool parked at z=-10 as 0.1 cubes), so runtime-repositioned terrain
+        # is culled away and the robot falls straight through it. Disabling
+        # the midphase falls back to the rbound broadphase, which we keep
+        # updated. ~50 geoms: no measurable cost.
+        xml = xml.replace(
+            '<option timestep="0.005" integrator="implicitfast" />',
+            '<option timestep="0.005" integrator="implicitfast">'
+            '<flag midphase="disable"/></option>')
         if self.cfg.sim_timestep != 0.005:
             xml = xml.replace('timestep="0.005"',
                               f'timestep="{self.cfg.sim_timestep}"')
@@ -522,6 +531,11 @@ class MedoEnv:
                 self.model.geom_quat[gid] = (1.0, 0.0, 0.0, 0.0)
             self.model.geom_rbound[gid] = float(
                 np.linalg.norm(self.model.geom_size[gid]))
+            # geom_aabb is BAKED AT COMPILE TIME (boxes parked as 0.1 cubes):
+            # the collision mid-phase culled the real, resized stairs away
+            # and the robot fell straight through them
+            self.model.geom_aabb[gid][:3] = 0.0
+            self.model.geom_aabb[gid][3:] = self.model.geom_size[gid]
         self.terrain_kind = kind
 
     def reset(self) -> np.ndarray:
