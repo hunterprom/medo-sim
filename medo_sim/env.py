@@ -502,7 +502,10 @@ class MedoEnv:
                 d = self.difficulties.get(k, 0.0)
                 if self._ep_fell:
                     self.difficulties[k] = max(0.0, d - c.terrain_diff_down)
-                elif frac > 0.5:
+                elif frac > 0.5 or self._track_progress > 0.8:
+                    # absolute-progress success: on stairs the walkable track
+                    # is shorter than the commanded distance, so a fraction
+                    # alone can never pass
                     self.difficulties[k] = min(1.0, d + c.terrain_diff_up)
             self._regen_terrain()
         if c.randomize:

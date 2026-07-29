@@ -120,13 +120,20 @@ def stair_boxes(difficulty: float, rng: np.random.Generator,
     run = 0.14 + rng.uniform(-0.02, 0.04)
     boxes = []
     for k in range(1, max_steps_per_side + 1):
-        x = SPAWN_R + (k - 0.5) * run
         top = k * rise
         # top unchanged, bottom 5 mm below the floor (coplanar bottom faces
         # z-fight the floor plane into flickering blotches)
         half_h = (top + 0.005) / 2
-        # slight x-overlap: exactly touching boxes render hairline seams
-        size = np.array([run / 2 + 0.003, 3.0, half_h])
+        if k == max_steps_per_side:
+            # summit platform: without it the staircase ends in a cliff, the
+            # climber walks off the far edge and every stairs episode ends
+            # in a "fall" -- the curriculum could never mark stairs passed
+            half_x = 0.6
+            x = SPAWN_R + (k - 1) * run + half_x
+        else:
+            half_x = run / 2 + 0.003   # slight overlap hides hairline seams
+            x = SPAWN_R + (k - 0.5) * run
+        size = np.array([half_x, 3.0, half_h])
         for sx in (+1, -1):
             boxes.append((np.array([sx * x, 0.0, top - half_h]), size.copy(),
                           np.array([1.0, 0.0, 0.0, 0.0])))
