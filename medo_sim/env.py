@@ -332,6 +332,9 @@ class MedoEnv:
                            f"_terrain_{os.path.basename(src)}")
         with open(src) as f:
             xml = f.read()
+        # PHYSICS-ONLY modifications; the visuals stay stock. (A long chain
+        # of custom lights/textures/slabs each traded one artifact for
+        # another -- the original rendering was fine all along.)
         asset = (f'<asset><hfield name="terrain" nrow="{n}" ncol="{n}" '
                  f'size="{ext / 2} {ext / 2} 0.4 0.1"/></asset>')
         # stiff contact (solref 0.01) + priority so it wins the combination
@@ -346,37 +349,11 @@ class MedoEnv:
             f'<geom name="tbox{i:02d}" type="box" size="0.1 0.1 0.1" '
             f'pos="0 0 -10" {common}/>'
             for i in range(self.cfg.terrain_box_pool))
-        # extra fill light: at walking-height camera angles the tilted
-        # surfaces otherwise render near-black and leg shadows read as the
-        # legs continuing underground
-        geom += ('<light directional="true" pos="1 1 3" dir="-0.2 -0.2 -1" '
-                 'diffuse="0.28 0.28 0.28" specular="0.05 0.05 0.05" '
-                 'castshadow="false"/>')
-        # visible ground = a plain matte slab; the checker TEXTURE was the
-        # blotch source all along -- unmipped 300px checkers alias into
-        # organic shimmering patches at grazing angles. The invisible plane
-        # stays as the collider.
-        # slab top 2 mm BELOW the (invisible) collision plane: exactly
-        # coplanar surfaces z-fight, and the fight pixels exposed the buried
-        # hfield as white blotches
-        geom += ('<geom name="groundslab" type="box" size="12 12 0.05" '
-                 'pos="0 0 -0.052" rgba="0.44 0.42 0.37 1" '
-                 'contype="0" conaffinity="0"/>')
-        geom_stats = '<statistic extent="4" center="0 0 0.15"/>'
         xml = xml.replace("<worldbody>", "<worldbody>" + geom, 1)
-        # pin scene statistics: the 24 m ground slab otherwise inflates the
-        # auto extent, wrecking depth precision (grazing-angle speckle) and
-        # near-plane clipping
-        xml = xml.replace("</mujoco>",
-                          geom_stats + asset + "</mujoco>")
+        xml = xml.replace("</mujoco>", asset + "</mujoco>")
         if self.cfg.sim_timestep != 0.005:
             xml = xml.replace('timestep="0.005"',
                               f'timestep="{self.cfg.sim_timestep}"')
-        # hide the plane (alpha 0) -- collision only; the slab is the visual
-        xml = xml.replace(
-            '<geom name="floor" type="plane" size="0 0 0.05" '
-            'material="groundplane"',
-            '<geom name="floor" type="plane" size="0 0 0.05" rgba="0 0 0 0"')
         # cover the knee-drive servo housings: they bulge past the thigh
         # capsule and passed visibly through stair risers. Named *_thigh_*
         # so they classify as penalized limb contact, not terminal.
@@ -388,26 +365,6 @@ class MedoEnv:
         xml = re.sub(
             r'<geom name="thigh_(\w+)_vis_1"[^>]*?pos="([^"]+)"[^>]*/>',
             _servo_col, xml)
-        # light matte ground for the terrain world: the default dark
-        # reflective checker reads as a void at walking-height camera
-        # angles, making planted legs look sunken
-        xml = xml.replace('rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"',
-                          'rgb1="0.56 0.53 0.46" rgb2="0.48 0.46 0.41"')
-        # the white edge marks moire into speckle bands at grazing angles
-        xml = xml.replace('mark="edge"', 'mark="none"')
-        xml = xml.replace('reflectance="0.1"', 'reflectance="0.0"')
-        # no shadow maps in the terrain world: stretched over a ~20 m extent
-        # they render as ragged dark blobs under the robot that read as
-        # holes in the ground ("the robot is sunk"), at any resolution
-        xml = xml.replace('<light pos="0 0 1.5" dir="0 0 -1" directional="true" />',
-                          '<light pos="0 0 1.5" dir="0 0 -1" directional="true" '
-                          'castshadow="false" />')
-        # near plane 2 cm (znear is a fraction of the pinned extent 4):
-        # a large znear slices the robot open when the user zooms in close
-        # ("the whole robot is clipped"). zfar capped to keep depth budget.
-        xml = xml.replace('<quality shadowsize="4096" />',
-                          '<quality shadowsize="4096" />'
-                          '<map znear="0.005" zfar="40" />')
         tmp = dst + ".tmp"
         with open(tmp, "w") as f:
             f.write(xml)
