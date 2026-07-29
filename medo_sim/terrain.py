@@ -1,4 +1,4 @@
-"""Procedural terrain heightfields for blind all-terrain training.
+﻿"""Procedural terrain heightfields for blind all-terrain training.
 
 Each MedoEnv owns its own MjModel, so a per-episode terrain swap is just a
 numpy write into model.hfield_data -- no recompiling, no cross-env locking.
@@ -133,7 +133,7 @@ def stair_boxes(difficulty: float, rng: np.random.Generator,
         else:
             half_x = run / 2 + 0.003   # slight overlap hides hairline seams
             x = SPAWN_R + (k - 0.5) * run
-        size = np.array([half_x, 3.0, half_h])
+        size = np.array([half_x, 8.0, half_h])
         for sx in (+1, -1):
             boxes.append((np.array([sx * x, 0.0, top - half_h]), size.copy(),
                           np.array([1.0, 0.0, 0.0, 0.0])))
