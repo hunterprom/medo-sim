@@ -350,7 +350,7 @@ class MedoEnv:
         # surfaces otherwise render near-black and leg shadows read as the
         # legs continuing underground
         geom += ('<light directional="true" pos="1 1 3" dir="-0.2 -0.2 -1" '
-                 'diffuse="0.55 0.55 0.55" specular="0.1 0.1 0.1" '
+                 'diffuse="0.28 0.28 0.28" specular="0.05 0.05 0.05" '
                  'castshadow="false"/>')
         # visible ground = a plain matte slab; the checker TEXTURE was the
         # blotch source all along -- unmipped 300px checkers alias into
@@ -360,7 +360,7 @@ class MedoEnv:
         # coplanar surfaces z-fight, and the fight pixels exposed the buried
         # hfield as white blotches
         geom += ('<geom name="groundslab" type="box" size="12 12 0.05" '
-                 'pos="0 0 -0.052" rgba="0.52 0.50 0.44 1" '
+                 'pos="0 0 -0.052" rgba="0.44 0.42 0.37 1" '
                  'contype="0" conaffinity="0"/>')
         geom_stats = '<statistic extent="4" center="0 0 0.15"/>'
         xml = xml.replace("<worldbody>", "<worldbody>" + geom, 1)
@@ -407,7 +407,7 @@ class MedoEnv:
         # ("the whole robot is clipped"). zfar capped to keep depth budget.
         xml = xml.replace('<quality shadowsize="4096" />',
                           '<quality shadowsize="4096" />'
-                          '<map znear="0.005" zfar="15" />')
+                          '<map znear="0.005" zfar="40" />')
         tmp = dst + ".tmp"
         with open(tmp, "w") as f:
             f.write(xml)
