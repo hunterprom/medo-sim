@@ -24,6 +24,7 @@ class PPOConfig:
     epochs: int = 4
     num_minibatches: int = 2
     ent_coef: float = 0.004
+    max_log_std: float = -1.05   # sigma ceiling ~0.35
     vf_coef: float = 0.5
     max_grad_norm: float = 1.0
     desired_kl: float = 0.01
@@ -174,6 +175,11 @@ class PPO:
                 loss.backward()
                 nn.utils.clip_grad_norm_(self.net.parameters(), c.max_grad_norm)
                 self.opt.step()
+                # hard ceiling on exploration noise: the entropy bonus
+                # otherwise inflates sigma until a trained gait erodes
+                # (observed repeatedly: sigma past ~0.4 destroys walking)
+                with torch.no_grad():
+                    self.net.log_std.clamp_(min=-2.5, max=c.max_log_std)
 
                 stats["pi_loss"] += pi_loss.item()
                 stats["v_loss"] += v_loss.item()
