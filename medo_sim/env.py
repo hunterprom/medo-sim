@@ -402,11 +402,12 @@ class MedoEnv:
         xml = xml.replace('<light pos="0 0 1.5" dir="0 0 -1" directional="true" />',
                           '<light pos="0 0 1.5" dir="0 0 -1" directional="true" '
                           'castshadow="false" />')
-        # tighter near plane: depth precision at grazing angles could not
-        # separate the floor plane from thin step tops metres away -- the
-        # plane bled through as flickering blotches
+        # near plane 2 cm (znear is a fraction of the pinned extent 4):
+        # a large znear slices the robot open when the user zooms in close
+        # ("the whole robot is clipped"). zfar capped to keep depth budget.
         xml = xml.replace('<quality shadowsize="4096" />',
-                          '<quality shadowsize="4096" /><map znear="0.03" />')
+                          '<quality shadowsize="4096" />'
+                          '<map znear="0.005" zfar="15" />')
         tmp = dst + ".tmp"
         with open(tmp, "w") as f:
             f.write(xml)
