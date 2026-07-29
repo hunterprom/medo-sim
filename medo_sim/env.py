@@ -500,12 +500,15 @@ class MedoEnv:
                         if self._cmd_dist > 0.05 else 1.0)
                 k = self.terrain_kind
                 d = self.difficulties.get(k, 0.0)
-                if self._ep_fell:
+                # absolute progress counts EVEN IF the episode ends in a
+                # fall: a stairs climber tops out and then walks off the far
+                # edge of the finite world -- that fall is not a skill
+                # failure, and gating on it pinned stairs difficulty at zero
+                if self._track_progress > 0.8:
+                    self.difficulties[k] = min(1.0, d + c.terrain_diff_up)
+                elif self._ep_fell:
                     self.difficulties[k] = max(0.0, d - c.terrain_diff_down)
-                elif frac > 0.5 or self._track_progress > 0.8:
-                    # absolute-progress success: on stairs the walkable track
-                    # is shorter than the commanded distance, so a fraction
-                    # alone can never pass
+                elif frac > 0.5:
                     self.difficulties[k] = min(1.0, d + c.terrain_diff_up)
             self._regen_terrain()
         if c.randomize:
