@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 runs/
 .pytest_cache/
+
+# runtime-generated terrain model variant, rebuilt on demand by env.py
+assets/_terrain_*.xml
+MJDATA.TXT
